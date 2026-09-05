@@ -1,0 +1,36 @@
+package com.azimulkabir.actuali.ui.components
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class CalculatorAmountStateTest {
+    @Test fun digitsShiftIntoCentsLikeIos() {
+        val state = CalculatorAmountState()
+        state.digit(1); state.digit(2); state.digit(0)
+        assertEquals("1.20", state.display)
+        assertEquals(120, state.cents)
+    }
+
+    @Test fun operatorsEvaluateLeftToRight() {
+        val state = CalculatorAmountState()
+        state.digit(1); state.digit(0); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.ADD)
+        state.digit(2); state.digit(0); state.digit(0)
+        state.operator(CalculatorAmountState.Operator.MULTIPLY)
+        state.digit(3); state.digit(0); state.digit(0)
+        assertEquals(900, state.finish())
+    }
+
+    @Test fun negativeBudgetAmountsAreSupported() {
+        val state = CalculatorAmountState(allowsNegative = true)
+        state.digit(5); state.digit(0); state.digit(0); state.toggleSign()
+        assertEquals(-500, state.finish())
+    }
+
+    @Test fun divisionByZeroLeavesRunningTotal() {
+        val state = CalculatorAmountState(1250)
+        state.operator(CalculatorAmountState.Operator.DIVIDE)
+        state.digit(0)
+        assertEquals(1250, state.finish())
+    }
+}
