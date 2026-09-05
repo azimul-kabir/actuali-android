@@ -222,6 +222,12 @@ fun AppNavigation(
                         destination = MainDestination.Accounts
                     }
                 },
+                onDelete = { transaction ->
+                    if (mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }) {
+                        editingTransaction = null
+                        detail = DetailDestination.Transactions
+                    }
+                },
                 modifier = contentModifier,
                     accountOptions = accounts.filter { !it.closed }.map { it.name },
                     categoryOptions = categoryNames,

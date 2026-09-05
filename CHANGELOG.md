@@ -2,6 +2,14 @@
 
 All notable user-facing changes to Actuali for Android are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
 
+## Unreleased
+
+### Fixed
+
+- Transaction forms now scroll through fields and actions within the available screen and keyboard space
+- Expense, Income, and Transfer selector labels are centered consistently
+- Add mode now has an explicit Cancel action; Edit mode has working Save, Delete, and Cancel actions
+
 ## [0.1.0-alpha.1] - 2026-09-05
 
 Initial public testing release.
