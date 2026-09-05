@@ -1,8 +1,15 @@
-# Actuali backend parity
+# Actuali Android backend parity
 
-The iOS project at `../actuali-ios/Actuali/Actuali` is the canonical implementation.
-Android platform integrations replace Apple-only APIs; financial semantics and
-Actual protocol/database behavior should remain equivalent.
+The original [Actuali for iOS repository](https://github.com/MattFaz/actuali)
+is the upstream behavioral reference for this independent Android port. A local
+checkout may be available at `../actuali-ios/Actuali/Actuali` during development,
+but must not be assumed by builds or tests. Android platform integrations
+replace Apple-only APIs; portable financial semantics and Actual
+protocol/database behavior should remain equivalent.
+
+This is a reimplementation in Kotlin and Jetpack Compose, not a shared-code
+build of the Swift application. See [README.md](README.md), [NOTICE.md](NOTICE.md),
+and [LICENSE](LICENSE) for project scope and attribution.
 
 ## Version 1 boundary
 
@@ -65,8 +72,11 @@ Android backlog items and will never be ported.
   hiding decimals never changes stored values
 - Real database-backed Budget overview and Accounts monthly income/expense/net totals
 - Working previous/next budget month navigation, with reads and budget writes scoped to the selected month
+- App-wide display currency selection (including no currency), symbol-only mode,
+  and decimal-place presentation
+- Category Spent amounts open the matching category transactions for the selected month
 
-## In progress
+## Remaining version 1 work
 
 - Remaining entity creation/deletion/merge/reorder mutations and Android action wiring
 - Budget templates, goals, transfers, and automation UI
@@ -90,3 +100,11 @@ Android backlog items and will never be ported.
 - App Intents / Shortcuts: excluded
 - iCloud/Keychain/background-task APIs: replaced with Android storage, Keystore,
   and WorkManager equivalents
+
+## Port maintenance
+
+When upstream Actuali changes, compare the relevant Swift model, service, test,
+and view behavior before changing Android. Port financial and synchronization
+semantics with tests; adapt only platform presentation and lifecycle behavior.
+Record deliberate exclusions here so the Android project never presents an
+Apple-only feature as unfinished work.
