@@ -1,11 +1,17 @@
 package com.azimulkabir.actuali.ui.components
 
 import java.text.NumberFormat
+import java.util.Currency
 import java.util.Locale
 import kotlin.math.absoluteValue
 
 object BalanceVisibility {
     @Volatile var hidden: Boolean = false
+}
+
+object CurrencyDisplay {
+    @Volatile var code: String = "BDT"
+    @Volatile var symbolOnly: Boolean = false
 }
 
 fun formatMoneyCents(
@@ -22,7 +28,24 @@ fun formatMoneyCents(
     val magnitude = cents.absoluteValue
     val whole = NumberFormat.getIntegerInstance(Locale.forLanguageTag("en-BD")).format(magnitude / 100)
     val decimals = if (hideDecimalPlaces) "" else ".${(magnitude % 100).toString().padStart(2, '0')}"
-    return "$sign৳$whole$decimals"
+    val currency = CurrencyDisplay.code
+    if (currency.isBlank()) return "$sign$whole$decimals"
+    val symbol = if (CurrencyDisplay.symbolOnly) narrowCurrencySymbol(currency)
+    else if (currency == "BDT") "৳"
+    else runCatching { Currency.getInstance(currency).getSymbol(Locale.getDefault()) }.getOrDefault(currency)
+    return "$sign$symbol$whole$decimals"
+}
+
+private fun narrowCurrencySymbol(code: String): String = when (code) {
+    "BDT" -> "৳"
+    "USD", "CAD", "AUD", "NZD", "SGD" -> "$"
+    "EUR" -> "€"
+    "GBP" -> "£"
+    "JPY", "CNY" -> "¥"
+    "INR" -> "₹"
+    "AED" -> "د.إ"
+    "SAR" -> "ر.س"
+    else -> runCatching { Currency.getInstance(code).symbol }.getOrDefault(code)
 }
 
 fun centsToInput(cents: Long): String {

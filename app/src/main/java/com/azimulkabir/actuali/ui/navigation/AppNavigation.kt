@@ -47,6 +47,7 @@ import com.azimulkabir.actuali.data.sync.ActualSyncRunner
 import com.azimulkabir.actuali.data.sync.SyncRunResult
 import com.azimulkabir.actuali.data.preferences.DisplayPreferences
 import com.azimulkabir.actuali.ui.components.BalanceVisibility
+import com.azimulkabir.actuali.ui.components.CurrencyDisplay
 
 private enum class MainDestination(
     val label: String,
@@ -93,6 +94,8 @@ fun AppNavigation(
     var transactionMonth by rememberSaveable { mutableStateOf<String?>(null) }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
+    var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
+    var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
     var showHiddenCategories by remember { mutableStateOf(displayPreferences.showHiddenCategories) }
     var showSpentColumn by remember { mutableStateOf(displayPreferences.showSpentColumn) }
     var showBudgetProgressBars by remember { mutableStateOf(displayPreferences.showBudgetProgressBars) }
@@ -107,6 +110,8 @@ fun AppNavigation(
     var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
     var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
     BalanceVisibility.hidden = hideBalances
+    CurrencyDisplay.code = currencyCode
+    CurrencyDisplay.symbolOnly = currencySymbolOnly
     val snackbarHostState = remember { SnackbarHostState() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -365,6 +370,16 @@ fun AppNavigation(
                     onHideDecimalPlacesChange = {
                         displayPreferences.hideDecimalPlaces = it
                         hideDecimalPlaces = it
+                    },
+                    currencyCode = currencyCode,
+                    onCurrencyCodeChange = {
+                        displayPreferences.currencyCode = it
+                        currencyCode = it
+                    },
+                    currencySymbolOnly = currencySymbolOnly,
+                    onCurrencySymbolOnlyChange = {
+                        displayPreferences.currencySymbolOnly = it
+                        currencySymbolOnly = it
                     },
                     hideBalances = hideBalances,
                     onHideBalancesChange = {

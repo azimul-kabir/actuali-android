@@ -33,6 +33,10 @@ fun SettingsScreen(
     onConnectionClick: () -> Unit = {},
     hideDecimalPlaces: Boolean = false,
     onHideDecimalPlacesChange: (Boolean) -> Unit = {},
+    currencyCode: String = "BDT",
+    onCurrencyCodeChange: (String) -> Unit = {},
+    currencySymbolOnly: Boolean = false,
+    onCurrencySymbolOnlyChange: (Boolean) -> Unit = {},
     hideBalances: Boolean = false,
     onHideBalancesChange: (Boolean) -> Unit = {},
     appearance: String = "System",
@@ -74,6 +78,17 @@ fun SettingsScreen(
         )
         SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, onCreditCardsClick)
         SettingsSection("Display")
+        SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
+            onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)
+        }
+        if (currencyCode.isNotBlank()) {
+            SettingsToggle(
+                "Symbol only",
+                "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
+                currencySymbolOnly,
+                onCurrencySymbolOnlyChange,
+            )
+        }
         SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
         SettingsChoice("Start page", startPage, listOf("Budget", "Accounts", "Add", "Reports", "More"), onStartPageChange)
         SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values", hideDecimalPlaces, onHideDecimalPlacesChange)
@@ -86,6 +101,25 @@ fun SettingsScreen(
         )
     }
 }
+
+private val currencyOptions = listOf(
+    "None" to "",
+    "৳ BDT" to "BDT",
+    "${'$'} USD" to "USD",
+    "€ EUR" to "EUR",
+    "£ GBP" to "GBP",
+    "C${'$'} CAD" to "CAD",
+    "A${'$'} AUD" to "AUD",
+    "¥ JPY" to "JPY",
+    "₹ INR" to "INR",
+    "¥ CNY" to "CNY",
+    "S${'$'} SGD" to "SGD",
+    "د.إ AED" to "AED",
+    "ر.س SAR" to "SAR",
+)
+
+private fun currencyLabel(code: String): String =
+    currencyOptions.firstOrNull { it.second == code }?.first ?: code.ifBlank { "None" }
 
 @Composable
 private fun SettingsChoice(label: String, value: String, options: List<String>, onChange: (String) -> Unit) {
