@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -207,6 +208,9 @@ fun BudgetScreen(
                             showTopDivider = index > 0,
                             onLongClick = { selectedCategory = category },
                             onEditBudget = { editingBudget = group to category },
+                            onShowSpentTransactions = {
+                                onShowCategoryTransactions(category.name, true)
+                            },
                             hideDecimalPlaces = hideDecimalPlaces,
                         )
                     }
@@ -369,8 +373,13 @@ private fun BudgetOverviewRow(overview: BudgetOverview, showSpent: Boolean, hide
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OverviewCell("To budget", overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
-                Modifier.weight(1.35f), Alignment.Start)
+            OverviewCell(
+                "To budget",
+                overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
+                Modifier.weight(1.35f),
+                Alignment.Start,
+                positive = overview.toBudgetCents?.let { it > 0 } == true,
+            )
             OverviewCell("Budgeted", formatMoneyCents(overview.budgetedCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
             if (showSpent) OverviewCell("Spent", formatMoneyCents(overview.spentCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
             OverviewCell("Balance", formatMoneyCents(overview.availableCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End,
@@ -476,6 +485,7 @@ private fun CategoryRow(
     showTopDivider: Boolean,
     onLongClick: () -> Unit,
     onEditBudget: () -> Unit,
+    onShowSpentTransactions: () -> Unit,
     hideDecimalPlaces: Boolean,
 ) {
     if (showTopDivider) {
@@ -494,7 +504,15 @@ private fun CategoryRow(
             CategoryAmount(category.assignedCents, Modifier.weight(1f).combinedClickable(
                 role = Role.Button, onClick = onEditBudget, onLongClick = onLongClick,
             ), hideDecimalPlaces)
-            if (showSpent) CategoryAmount(-category.spentCents, Modifier.weight(1f), hideDecimalPlaces, muted = category.spentCents == 0L)
+            if (showSpent) CategoryAmount(
+                -category.spentCents,
+                Modifier.weight(1f).clickable(
+                    role = Role.Button,
+                    onClick = onShowSpentTransactions,
+                ),
+                hideDecimalPlaces,
+                muted = category.spentCents == 0L,
+            )
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                 BalancePill(category.balanceCents, hideDecimalPlaces)
             }
