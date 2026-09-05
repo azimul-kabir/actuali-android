@@ -7,6 +7,7 @@ import com.azimulkabir.actuali.data.budget.ActualTransactionForm
 import com.azimulkabir.actuali.data.budget.ActualTransactionFormService
 import com.azimulkabir.actuali.data.budget.ActualTransactionType
 import com.azimulkabir.actuali.data.budget.ActualTransactionWriter
+import com.azimulkabir.actuali.data.budget.ActualSplitLineForm
 import com.azimulkabir.actuali.data.budget.ActualEntityWriter
 import com.azimulkabir.actuali.data.budget.ActualBudgetWriter
 import com.azimulkabir.actuali.data.budget.BudgetFileManager
@@ -14,8 +15,10 @@ import com.azimulkabir.actuali.model.Account
 import com.azimulkabir.actuali.model.BudgetCategory
 import com.azimulkabir.actuali.model.BudgetGroup
 import com.azimulkabir.actuali.model.BudgetOverview
+import com.azimulkabir.actuali.model.BudgetHistory
 import com.azimulkabir.actuali.model.Transaction
 import com.azimulkabir.actuali.model.Type
+import com.azimulkabir.actuali.model.SplitLine
 import com.azimulkabir.actuali.model.ReportCategory
 import com.azimulkabir.actuali.model.ReportMonth
 import com.azimulkabir.actuali.model.ReportSnapshot
@@ -63,6 +66,8 @@ class ActualiRepository(context: Context) {
     fun budgetGroups(month: String = currentMonth()): List<BudgetGroup> {
         actualDatabase?.let { db ->
             val budget = db.fetchBudgetMonth(month)
+            val selectedMonth = java.time.YearMonth.parse(month)
+            val histories = (1L..6L).map { offset -> db.fetchBudgetMonth(selectedMonth.minusMonths(offset).toString()) }
             return (budget.categories + budget.hiddenCategories).groupBy { it.groupId }.values
                 .sortedBy { it.first().groupSortOrder }
                 .map { rows ->
@@ -77,6 +82,13 @@ class ActualiRepository(context: Context) {
                             it.availableCents,
                             it.hidden,
                             -it.spentCents,
+                            it.carryoverEnabled,
+                            db.fetchNote(it.categoryId),
+                            histories.mapNotNull { historyMonth ->
+                                (historyMonth.categories + historyMonth.hiddenCategories)
+                                    .firstOrNull { row -> row.categoryId == it.categoryId }
+                                    ?.let { row -> BudgetHistory(historyMonth.month, row.budgetedCents, row.spentCents) }
+                            },
                         )
                     }, hidden = rows.first().groupHidden)
                 }
@@ -108,6 +120,10 @@ class ActualiRepository(context: Context) {
                     closed = it.closed,
                     balanceCents = it.balanceCents,
                     id = it.id,
+                    clearedCents = it.clearedCents,
+                    unclearedCents = it.unclearedCents,
+                    reconciledCents = it.reconciledCents,
+                    note = db.fetchNote("account-${it.id}"),
                 )
             }
         }
@@ -168,6 +184,16 @@ class ActualiRepository(context: Context) {
                     },
                     transferAccount = it.transferAccountId?.let(accountNames::get),
                     notes = it.notes.orEmpty(),
+                    splits = it.splitPortions.map { part ->
+                        SplitLine(
+                            category = part.categoryName.orEmpty(),
+                            amountCents = kotlin.math.abs(part.amountCents),
+                            notes = part.notes.orEmpty(),
+                            payee = part.payeeName.takeUnless { name -> name == it.payeeName }.orEmpty(),
+                            isOpposite = (part.amountCents < 0) != (it.amountCents < 0),
+                            childId = part.id,
+                        )
+                    },
                 )
             }
         }
@@ -203,9 +229,10 @@ class ActualiRepository(context: Context) {
         actualDatabase?.let { db ->
             val account = db.fetchAccounts().firstOrNull { it.name == transaction.account && !it.closed }
                 ?: error("Select an account")
-            val category = db.fetchCategoryGroups().flatMap { it.categories }
-                .firstOrNull { it.name == transaction.category && !it.hidden }
-            if (transaction.category.isNotBlank() && transaction.category != "Uncategorized" && category == null) {
+            val categories = db.fetchCategoryGroups().flatMap { it.categories }
+            val category = categories.firstOrNull { it.name == transaction.category && !it.hidden }
+            if (transaction.splits.isEmpty() && transaction.category.isNotBlank() &&
+                transaction.category != "Uncategorized" && category == null) {
                 error("Select a category from the list")
             }
             val transferAccount = transaction.transferAccount?.let { name ->
@@ -228,6 +255,20 @@ class ActualiRepository(context: Context) {
                     notes = transaction.notes,
                     date = parseDate(transaction.date),
                     cleared = transaction.cleared,
+                    splits = transaction.splits.map { line ->
+                        val lineCategory = categories
+                            .firstOrNull { it.name == line.category }
+                            ?: error("Select a category for every split")
+                        ActualSplitLineForm(
+                            childId = line.childId,
+                            categoryId = lineCategory.id,
+                            amount = com.azimulkabir.actuali.ui.components.centsToInput(line.amountCents),
+                            isOpposite = line.isOpposite,
+                            notes = line.notes,
+                            payeeName = line.payee,
+                        )
+                    },
+                    collapseSplit = original?.isParent == true && transaction.splits.isEmpty(),
                 ),
                 original = original,
             )
@@ -297,6 +338,25 @@ class ActualiRepository(context: Context) {
         return true
     }
 
+    fun setCategoryNote(categoryId: String, note: String): Boolean {
+        actualEntities?.setNote(categoryId, normalizeNote(note)) ?: return false
+        return true
+    }
+
+    fun setAccountNote(accountId: String, note: String): Boolean {
+        actualEntities?.setNote("account-$accountId", normalizeNote(note)) ?: return false
+        return true
+    }
+
+    fun setCategoryCarryover(categoryId: String, enabled: Boolean, month: String = currentMonth()): Boolean {
+        val start = java.time.YearMonth.parse(month)
+        val end = java.time.YearMonth.now().plusMonths(12)
+        val months = generateSequence(start) { current -> current.plusMonths(1).takeIf { it <= end } }.toList()
+            .ifEmpty { listOf(start) }.map(java.time.YearMonth::toString)
+        actualBudgets?.setCarryover(months, categoryId, enabled) ?: return false
+        return true
+    }
+
     fun transferBudget(fromGroup: String?, fromCategory: String?, toGroup: String?, toCategory: String?,
         amountCents: Long, month: String = currentMonth()): Boolean {
         val db = actualDatabase ?: return false
@@ -328,6 +388,8 @@ class ActualiRepository(context: Context) {
 
     private fun centsToDisplayUnits(cents: Long): Int =
         (cents / 100L).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
+
+    private fun normalizeNote(note: String): String = if (note.isBlank()) "" else note
 
     private fun currentMonth(): String = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.US)
         .format(java.util.Date())

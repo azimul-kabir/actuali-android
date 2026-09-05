@@ -21,6 +21,9 @@ class ActualBudgetReadModelTest {
         // The split parent is excluded.
         // The orphan and half-synced rows are excluded too.
         assertEquals(-3_000, accounts.first().balanceCents)
+        assertEquals(0, accounts.first().clearedCents)
+        assertEquals(-3_000, accounts.first().unclearedCents)
+        assertEquals(0, accounts.first().reconciledCents)
         assertEquals(-700, accounts.last().balanceCents)
 
         val groups = database.fetchCategoryGroups()
@@ -37,6 +40,7 @@ class ActualBudgetReadModelTest {
         assertEquals("Savings", transfer.payeeName)
         assertEquals("savings", transfer.transferAccountId)
         assertEquals(listOf("Groceries", "Rent"), split.splitPortions.map { it.categoryName })
+        assertEquals(listOf("split-a", "split-b"), split.splitPortions.map { it.id })
         assertNull(split.categoryName)
     }
 
@@ -125,6 +129,17 @@ class ActualBudgetReadModelTest {
         assertEquals(listOf(-700L, -300L), editedChildren.map { it.amountCents })
         assertTrue(editedChildren.all { it.date == 20260905 && it.cleared })
         assertTrue(editedChildren.none { it.id == children[1].id })
+
+        service.save(ActualTransactionForm(
+            accountId = "checking", type = ActualTransactionType.EXPENSE,
+            amount = "10", payeeName = "Store", categoryId = "grocery",
+            date = 20260906, collapseSplit = true,
+        ), original = database.fetchTransaction(parent.id))
+        val collapsed = database.fetchTransaction(parent.id)!!
+        assertTrue(!collapsed.isParent)
+        assertEquals(-1_000L, collapsed.amountCents)
+        assertEquals("grocery", collapsed.categoryId)
+        assertTrue(database.fetchChildTransactions(parent.id).isEmpty())
     }
 
     @Test

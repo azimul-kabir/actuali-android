@@ -30,8 +30,12 @@ Android backlog items and will never be ported.
 - Sync convergence loop and Android Keystore-backed credentials/keys
 - Actual schema migrations required by current Android reads
 - Accounts, payees, category groups/categories, transactions, transfers, splits
-- Transaction form planning and atomic transaction mutations
+- Transaction form planning and atomic transaction mutations, including split
+  creation, child-preserving edits, opposite-direction lines, and collapse to a
+  standard transaction
 - Zero/reflect budget month calculations, carryover, To Budget, and exact-cent writes
+- Synced account/category notes, per-account working/cleared/uncleared/reconciled
+  balances, and category rollover-overspending preferences
 - Calculator-style amount entry parity for budget writes
 - Local backup snapshots, CRDT stripping, retention, restore, and one-shot revert
 - Rule JSON parsing, schema translation, ranking, condition/action evaluation,
@@ -75,11 +79,17 @@ Android backlog items and will never be ported.
 - App-wide display currency selection (including no currency), symbol-only mode,
   and decimal-place presentation
 - Category Spent amounts open the matching category transactions for the selected month
+- Category details with notes, rollover overspending, and six-month history-based quick assign
+- Account details with notes and working, cleared, uncleared, and reconciled balances
+- Credit-card account details with limit, available credit, current billing cycle,
+  cycle spending, and calculated payment due date
+- Add/edit split transaction UI with per-line category, amount, direction, payee,
+  notes, remaining allocation, and Actual-compatible child-row persistence
 
 ## Remaining version 1 work
 
 - Remaining entity creation/deletion/merge/reorder mutations and Android action wiring
-- Budget templates, goals, transfers, and automation UI
+- Budget templates, goals, and broader automation UI
 - Server failover parity
 - Local-backup export/share and import picker
 

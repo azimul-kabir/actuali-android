@@ -45,6 +45,7 @@ class ActualEntityWriter(
     fun renamePayee(id: String, name: String) = update("payees", id, mapOf("name" to requiredName(name)))
     fun deletePayee(id: String) = update("payees", id, mapOf("tombstone" to 1))
     fun setPreference(id: String, value: String?) = update("preferences", id, mapOf("value" to value))
+    fun setNote(id: String, note: String) = update("notes", id, mapOf("note" to note))
 
     /** PWA/iOS local-account shape: account + transfer payee + optional opening transaction. */
     @Synchronized
@@ -122,6 +123,7 @@ class ActualEntityWriter(
             "category_groups" to setOf("name", "hidden", "tombstone", "sort_order"),
             "payees" to setOf("name", "tombstone"),
             "preferences" to setOf("value"),
+            "notes" to setOf("note"),
         )
     }
 }

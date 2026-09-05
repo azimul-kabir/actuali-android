@@ -24,6 +24,9 @@ data class ActualAccount(
     val closed: Boolean,
     val sortOrder: Int,
     val balanceCents: Long,
+    val clearedCents: Long = 0,
+    val unclearedCents: Long = 0,
+    val reconciledCents: Long = 0,
 )
 
 data class ActualPayee(
@@ -73,5 +76,11 @@ data class ActualTransaction(
     val startingBalance: Boolean = false,
     val splitPortions: List<SplitPortion> = emptyList(),
 ) {
-    data class SplitPortion(val categoryName: String?, val amountCents: Long)
+    data class SplitPortion(
+        val id: String,
+        val categoryName: String?,
+        val amountCents: Long,
+        val notes: String?,
+        val payeeName: String?,
+    )
 }

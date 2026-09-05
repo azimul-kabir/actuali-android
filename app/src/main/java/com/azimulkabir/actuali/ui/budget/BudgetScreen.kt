@@ -12,6 +12,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +43,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -123,6 +126,8 @@ fun BudgetScreen(
     onShowCategoryTransactions: (String, Boolean) -> Unit = { _, _ -> },
     onTransferBudget: (String?, String?, String?, String?, Long) -> Unit = { _, _, _, _, _ -> },
     onSetBudgetAmount: (String, String, Long) -> Unit = { _, _, _ -> },
+    onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
+    onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
 ) {
     var selectedCategory by remember { mutableStateOf<BudgetCategory?>(null) }
     var selectedGroup by remember { mutableStateOf<BudgetGroup?>(null) }
@@ -135,6 +140,7 @@ fun BudgetScreen(
     var creatingCategory by remember { mutableStateOf(false) }
     var creatingGroup by remember { mutableStateOf(false) }
     var movingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
+    var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
         BudgetToolbar(
@@ -208,6 +214,7 @@ fun BudgetScreen(
                             showTopDivider = index > 0,
                             onLongClick = { selectedCategory = category },
                             onEditBudget = { editingBudget = group to category },
+                            onOpenDetails = { categoryDetails = group to category },
                             onShowSpentTransactions = {
                                 onShowCategoryTransactions(category.name, true)
                             },
@@ -227,6 +234,7 @@ fun BudgetScreen(
             onDismiss = { selectedCategory = null },
             onRename = { selectedCategory = null; renamingCategory = parent to category },
             onEditBudget = { selectedCategory = null; editingBudget = parent to category },
+            onDetails = { selectedCategory = null; categoryDetails = parent to category },
             onTransactionsThisMonth = { selectedCategory = null; onShowCategoryTransactions(category.name, true) },
             onAllTransactions = { selectedCategory = null; onShowCategoryTransactions(category.name, false) },
             onMoveMoney = { selectedCategory = null; movingBudget = parent to category },
@@ -280,6 +288,20 @@ fun BudgetScreen(
             else onTransferBudget(group.name, category.name, targetGroup, targetCategory, amount)
             movingBudget = null
         }) }
+    categoryDetails?.let { (group, category) ->
+        CategoryDetailsSheet(
+            category = category,
+            month = month,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { categoryDetails = null },
+            onSaveNote = { note -> onSetCategoryNote(category.id.orEmpty(), note) },
+            onSetCarryover = { enabled -> onSetCategoryCarryover(category.id.orEmpty(), enabled) },
+            onAssign = { amount ->
+                onSetBudgetAmount(group.name, category.name, amount)
+                categoryDetails = null
+            },
+        )
+    }
 }
 
 @Composable
@@ -485,6 +507,7 @@ private fun CategoryRow(
     showTopDivider: Boolean,
     onLongClick: () -> Unit,
     onEditBudget: () -> Unit,
+    onOpenDetails: () -> Unit,
     onShowSpentTransactions: () -> Unit,
     hideDecimalPlaces: Boolean,
 ) {
@@ -493,7 +516,7 @@ private fun CategoryRow(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
     }
     Column(
-        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = {}, onLongClick = onLongClick)
+        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onOpenDetails, onLongClick = onLongClick)
             .padding(horizontal = 16.dp, vertical = 11.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -679,11 +702,77 @@ private fun MoveBudgetSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun CategoryDetailsSheet(
+    category: BudgetCategory,
+    month: String,
+    hideDecimalPlaces: Boolean,
+    onDismiss: () -> Unit,
+    onSaveNote: (String) -> Unit,
+    onSetCarryover: (Boolean) -> Unit,
+    onAssign: (Long) -> Unit,
+) {
+    var note by remember(category) { mutableStateOf(category.note) }
+    var rollover by remember(category) { mutableStateOf(category.carryoverEnabled) }
+    val suggestions = remember(category) {
+        buildList {
+            category.history.firstOrNull()?.let { last ->
+                val spent = kotlin.math.abs(minOf(last.spentCents, 0L))
+                if (spent > 0) add("Spent last month" to spent)
+                if (last.assignedCents != 0L) add("Assigned last month" to last.assignedCents)
+            }
+            val spending = category.history.map { kotlin.math.abs(minOf(it.spentCents, 0L)) }
+            if (spending.size >= 2) {
+                val average = (spending.sum().toDouble() / spending.size).toLong()
+                if (average > 0) add("Average spent (${spending.size} months)" to average)
+            }
+            if (category.balanceCents != 0L) add("Reset available to zero" to
+                (category.assignedCents - category.balanceCents))
+            if (category.assignedCents != 0L) add("Set assigned to zero" to 0L)
+        }.distinctBy { it.first }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)
+            .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(formatMonth(month), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedTextField(note, { note = it }, label = { Text("Category note") }, minLines = 3,
+                modifier = Modifier.fillMaxWidth())
+            Button(onClick = { onSaveNote(note) }, modifier = Modifier.fillMaxWidth()) { Text("Save note") }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Rollover overspending", fontWeight = FontWeight.SemiBold)
+                    Text("Carry overspending into the next month instead of taking it from To Budget.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(rollover, { enabled -> rollover = enabled; onSetCarryover(enabled) })
+            }
+            Text("Quick assign", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("Current assigned: ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (suggestions.isEmpty()) Text("No suggestions available", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            suggestions.forEach { (label, amount) ->
+                Surface(onClick = { onAssign(amount) }, color = MaterialTheme.colorScheme.surfaceContainer,
+                    shape = RoundedCornerShape(12.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(label, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                        Text(formatMoneyCents(amount, hideDecimalPlaces), fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun CategoryActionsSheet(
     category: BudgetCategory,
     onDismiss: () -> Unit,
     onRename: () -> Unit,
     onEditBudget: () -> Unit,
+    onDetails: () -> Unit,
     onTransactionsThisMonth: () -> Unit,
     onAllTransactions: () -> Unit,
     onMoveMoney: () -> Unit,
@@ -695,6 +784,7 @@ private fun CategoryActionsSheet(
             Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
             SheetAction("Rename category", onRename)
+            SheetAction("Budget details", onDetails)
             SheetAction("Edit budgeted amount", onEditBudget)
             SheetAction("Transactions this month", onTransactionsThisMonth)
             SheetAction("All transactions", onAllTransactions)

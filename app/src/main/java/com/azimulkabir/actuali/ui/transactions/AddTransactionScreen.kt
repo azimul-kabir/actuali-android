@@ -24,6 +24,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actuali.model.Transaction
+import com.azimulkabir.actuali.model.SplitLine
 import com.azimulkabir.actuali.model.Type
 import com.azimulkabir.actuali.ui.components.centsToInput
 import com.azimulkabir.actuali.ui.components.CalculatorAmountSheet
@@ -100,6 +102,13 @@ fun AddTransactionScreen(
     var transactionType by remember(editing) {
         mutableStateOf((editing?.type ?: Type.EXPENSE).displayName)
     }
+    var splitLines by remember(editing) { mutableStateOf(editing?.splits.orEmpty()) }
+    var splitCalculatorIndex by remember { mutableStateOf<Int?>(null) }
+    val isSplit = splitLines.isNotEmpty()
+    val splitTotal = splitLines.sumOf { if (it.isOpposite) -it.amountCents else it.amountCents }
+    val splitIsValid = !isSplit || (splitLines.size >= 2 && splitLines.all {
+        it.category.isNotBlank() && it.amountCents > 0
+    } && splitTotal == amountCents)
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
@@ -119,7 +128,10 @@ fun AddTransactionScreen(
                 Type.entries.forEach { type ->
                     FilterChip(
                         selected = transactionType == type.displayName,
-                        onClick = { transactionType = type.displayName },
+                        onClick = {
+                            transactionType = type.displayName
+                            if (type == Type.TRANSFER) splitLines = emptyList()
+                        },
                         label = {
                             Text(
                                 type.displayName,
@@ -147,10 +159,12 @@ fun AddTransactionScreen(
                     onValueChange = { payee = it }, editable = true,
                 )
             }
-            PickerTextField(
-                label = "Category", value = category, options = categoryOptions,
-                onValueChange = { category = it }, editable = true,
-            )
+            if (!isSplit) {
+                PickerTextField(
+                    label = "Category", value = category, options = categoryOptions,
+                    onValueChange = { category = it }, editable = true,
+                )
+            }
             PickerTextField(
                 label = if (transactionType == Type.TRANSFER.displayName) "From" else "Account",
                 value = account, options = accountOptions,
@@ -165,6 +179,132 @@ fun AddTransactionScreen(
                     options = accountOptions.filterNot { it == account },
                     onValueChange = { transferAccount = it }, editable = true,
                 )
+            } else {
+                if (!isSplit) {
+                    FilledTonalButton(
+                        onClick = {
+                            splitLines = if (editing == null) listOf(SplitLine(), SplitLine())
+                            else listOf(
+                                SplitLine(category = category, amountCents = amountCents), SplitLine(),
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(16.dp),
+                    ) { Text("Split into multiple categories") }
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Split categories",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = {
+                                category = splitLines.firstOrNull()?.category.orEmpty()
+                                splitLines = emptyList()
+                            }) { Text("Remove split") }
+                        }
+                        splitLines.forEachIndexed { index, line ->
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Split ${index + 1}", style = MaterialTheme.typography.labelLarge)
+                                PickerTextField(
+                                    label = "Category",
+                                    value = line.category,
+                                    options = categoryOptions,
+                                    onValueChange = { value ->
+                                        splitLines = splitLines.toMutableList().also {
+                                            it[index] = line.copy(category = value)
+                                        }
+                                    },
+                                    editable = true,
+                                )
+                                Box(Modifier.fillMaxWidth()) {
+                                    OutlinedTextField(
+                                        value = "৳${centsToInput(line.amountCents)}",
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("Amount") },
+                                        singleLine = true,
+                                        trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    Box(Modifier.matchParentSize().clickable { splitCalculatorIndex = index })
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        if (line.isOpposite) "Opposite direction" else "Same direction",
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Switch(
+                                        checked = line.isOpposite,
+                                        onCheckedChange = { value ->
+                                            splitLines = splitLines.toMutableList().also {
+                                                it[index] = line.copy(isOpposite = value)
+                                            }
+                                        },
+                                    )
+                                }
+                                if (line.amountCents == 0L && amountCents - splitTotal > 0) {
+                                    TextButton(onClick = {
+                                        splitLines = splitLines.toMutableList().also {
+                                            it[index] = line.copy(amountCents = amountCents - splitTotal)
+                                        }
+                                    }) { Text("Use remaining ৳${centsToInput(amountCents - splitTotal)}") }
+                                }
+                                PickerTextField(
+                                    label = "Payee (optional)",
+                                    value = line.payee,
+                                    options = payeeOptions,
+                                    onValueChange = { value ->
+                                        splitLines = splitLines.toMutableList().also {
+                                            it[index] = line.copy(payee = value)
+                                        }
+                                    },
+                                    editable = true,
+                                )
+                                OutlinedTextField(
+                                    value = line.notes,
+                                    onValueChange = { value ->
+                                        splitLines = splitLines.toMutableList().also {
+                                            it[index] = line.copy(notes = value)
+                                        }
+                                    },
+                                    label = { Text("Split note") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                if (splitLines.size > 2) {
+                                    TextButton(onClick = {
+                                        splitLines = splitLines.toMutableList().also { it.removeAt(index) }
+                                    }) { Text("Remove this split", color = MaterialTheme.colorScheme.error) }
+                                }
+                                if (index < splitLines.lastIndex) HorizontalDivider()
+                            }
+                        }
+                        FilledTonalButton(
+                            onClick = { splitLines = splitLines + SplitLine() },
+                            modifier = Modifier.fillMaxWidth().height(54.dp),
+                            shape = RoundedCornerShape(16.dp),
+                        ) { Text("Add another split") }
+                        Text(
+                            if (splitTotal == amountCents) "Split total matches the transaction amount"
+                            else "Remaining: ৳${centsToInput(amountCents - splitTotal)}",
+                            color = if (splitTotal == amountCents) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
             }
             Box(Modifier.fillMaxWidth()) {
                 OutlinedTextField(
@@ -195,10 +335,11 @@ fun AddTransactionScreen(
                         type = Type.entries.first { it.displayName == transactionType },
                         transferAccount = transferAccount.takeIf { transactionType == "Transfer" },
                         notes = notes,
+                        splits = splitLines,
                     )
                 )
             }, enabled = amountCents > 0 && account.isNotBlank() &&
-                (transactionType != "Transfer" || transferAccount.isNotBlank()),
+                (transactionType != "Transfer" || transferAccount.isNotBlank()) && splitIsValid,
                 modifier = Modifier.fillMaxWidth().height(54.dp),
                 shape = RoundedCornerShape(16.dp)) {
                 Text(if (editing == null) "Add transaction" else "Save changes")
@@ -231,6 +372,19 @@ fun AddTransactionScreen(
         onDismiss = { showCalculator = false },
         onApply = { amountCents = it; showCalculator = false },
     )
+    splitCalculatorIndex?.let { index ->
+        val line = splitLines.getOrNull(index)
+        if (line != null) CalculatorAmountSheet(
+            title = "Split ${index + 1} amount",
+            initialCents = line.amountCents,
+            conventionalAmountEntry = conventionalAmountEntry,
+            onDismiss = { splitCalculatorIndex = null },
+            onApply = { value ->
+                splitLines = splitLines.toMutableList().also { it[index] = line.copy(amountCents = value) }
+                splitCalculatorIndex = null
+            },
+        ) else splitCalculatorIndex = null
+    }
     if (confirmDelete && editing != null) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },

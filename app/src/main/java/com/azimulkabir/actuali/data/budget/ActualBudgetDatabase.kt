@@ -46,10 +46,13 @@ class ActualBudgetDatabase private constructor(
     /** Live accounts and their Actual-compatible, split-aware balances. */
     @Synchronized
     fun fetchAccounts(): List<ActualAccount> {
-        val balances = mutableMapOf<String, Long>()
+        data class Balances(val total: Long, val cleared: Long, val reconciled: Long)
+        val balances = mutableMapOf<String, Balances>()
         database.rawQuery(
             """
-                SELECT t.acct, COALESCE(SUM(t.amount), 0)
+                SELECT t.acct, COALESCE(SUM(t.amount), 0),
+                       COALESCE(SUM(CASE WHEN t.cleared = 1 THEN t.amount ELSE 0 END), 0),
+                       COALESCE(SUM(CASE WHEN t.reconciled = 1 THEN t.amount ELSE 0 END), 0)
                 FROM transactions t
                 LEFT JOIN transactions p ON p.id = t.parent_id
                 WHERE t.acct IS NOT NULL AND t.date IS NOT NULL
@@ -60,7 +63,8 @@ class ActualBudgetDatabase private constructor(
                 GROUP BY t.acct
             """.trimIndent(), null,
         ).use { cursor ->
-            while (cursor.moveToNext()) balances[cursor.getString(0)] = cursor.getLong(1)
+            while (cursor.moveToNext()) balances[cursor.getString(0)] =
+                Balances(cursor.getLong(1), cursor.getLong(2), cursor.getLong(3))
         }
 
         val result = mutableListOf<ActualAccount>()
@@ -81,11 +85,22 @@ class ActualBudgetDatabase private constructor(
                     offBudget = cursor.intOrZero(3) == 1,
                     closed = cursor.intOrZero(4) == 1,
                     sortOrder = cursor.doubleOrZero(5).toInt(),
-                    balanceCents = balances[id] ?: 0,
+                    balanceCents = balances[id]?.total ?: 0,
+                    clearedCents = balances[id]?.cleared ?: 0,
+                    unclearedCents = (balances[id]?.total ?: 0) - (balances[id]?.cleared ?: 0),
+                    reconciledCents = balances[id]?.reconciled ?: 0,
                 )
             }
         }
         return result
+    }
+
+    @Synchronized
+    fun fetchNote(id: String): String {
+        if (!hasTable("notes")) return ""
+        return database.rawQuery("SELECT note FROM notes WHERE id = ?", arrayOf(id)).use { cursor ->
+            if (cursor.moveToFirst()) cursor.stringOrNull(0).orEmpty() else ""
+        }
     }
 
     /** Actuali's cross-platform card metadata stored in Actual's synced preferences table. */
@@ -507,17 +522,26 @@ class ActualBudgetDatabase private constructor(
         val placeholders = parentIds.joinToString { "?" }
         database.rawQuery(
             """
-                SELECT ct.parent_id, ct.amount, c.name
+                SELECT ct.parent_id, ct.id, ct.amount, c.name, ct.notes,
+                       COALESCE(p.name, ct.imported_description)
                 FROM transactions ct
                 LEFT JOIN category_mapping cm ON cm.id = ct.category
                 LEFT JOIN categories c ON c.id = COALESCE(cm.transferId, ct.category)
+                LEFT JOIN payee_mapping pm ON pm.id = ct.description
+                LEFT JOIN payees p ON p.id = pm.targetId
                 WHERE ct.parent_id IN ($placeholders)
                   AND (ct.tombstone = 0 OR ct.tombstone IS NULL)
                 ORDER BY ct.sort_order DESC
             """.trimIndent(), parentIds.toTypedArray(),
         ).use { cursor ->
             while (cursor.moveToNext()) portions.getOrPut(cursor.getString(0)) { mutableListOf() } +=
-                ActualTransaction.SplitPortion(cursor.stringOrNull(2), cursor.longOrZero(1))
+                ActualTransaction.SplitPortion(
+                    id = cursor.getString(1),
+                    amountCents = cursor.longOrZero(2),
+                    categoryName = cursor.stringOrNull(3),
+                    notes = cursor.stringOrNull(4),
+                    payeeName = cursor.stringOrNull(5),
+                )
         }
         return rows.map { it.copy(splitPortions = portions[it.id].orEmpty()) }
     }

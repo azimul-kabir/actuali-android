@@ -20,14 +20,15 @@ This is an unofficial community project. It is not affiliated with or endorsed b
 - Offline local budget storage and encrypted CRDT synchronization
 - Automatic, foreground, post-mutation, and manual sync
 - Budget overview, category groups, monthly amounts, progress bars, and hide/show management
-- Account lists, balances, monthly summaries, and full transaction history
-- Expense, income, transfer, split, edit, clear, and delete transaction flows
+- Account lists, working/cleared/uncleared/reconciled balances, notes, monthly summaries, and full transaction history
+- Expense, income, transfer, editable split, edit, clear, and delete transaction flows
 - Searchable account, payee, and category selection; new payee creation
 - Calculator-style and conventional amount entry
 - Account, category, and group creation plus working contextual actions
 - Local backup, restore, retention, and pre-restore revert
 - Actual rules and scheduled-transaction backend processing
-- Credit-card billing-cycle metadata stored through Actual preferences
+- Category notes, rollover overspending, and history-based quick assign
+- Credit-card limits, billing-cycle metadata, due dates, and cycle spending stored through Actual preferences
 - Reports, display currency, decimal, appearance, start-page, and privacy preferences
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and detailed port status.

@@ -22,6 +22,25 @@ class ActualBudgetWriter(
     }
 
     @Synchronized
+    fun setCarryover(months: List<String>, categoryId: String, enabled: Boolean) {
+        val messages = months.flatMap { month ->
+            val cell = database.budgetCell(month, categoryId) ?: error("Budget table is missing")
+            buildList {
+                if (!cell.exists) {
+                    add(message(cell.table, cell.rowId, "month", cell.month))
+                    add(message(cell.table, cell.rowId, "category", cell.categoryId))
+                }
+                add(message(cell.table, cell.rowId, "carryover", if (enabled) 1 else 0))
+            }
+        }
+        database.applyLocalMessages(messages)
+        database.saveClock(ActualBudgetDatabase.ClockRecord(
+            clock.current().toString(), database.deriveMerkleFromMessageLog().root,
+        ))
+        onWrite()
+    }
+
+    @Synchronized
     fun transfer(month: String, fromCategoryId: String?, toCategoryId: String?, amountCents: Long) {
         require(amountCents > 0) { "Transfer amount must be positive" }
         require(fromCategoryId != toCategoryId) { "Choose two different budget locations" }

@@ -4,11 +4,25 @@ All notable user-facing changes to Actuali for Android are recorded here. This p
 
 ## Unreleased
 
+## [0.1.0-alpha.2] - 2026-09-05
+
+Second public testing release.
+
+### Added
+
+- Account details now show working, cleared, uncleared, and reconciled balances
+- Synced notes for accounts and budget categories using Actual's native notes data
+- Credit-card account details with available credit, limit, current billing cycle, cycle spend, and payment due date
+- Category rollover-overspending control and history-based quick assign suggestions
+- Full split transaction entry and editing with per-line category, amount, optional payee, note, direction, remaining amount, line addition/removal, and collapse back to a normal transaction
+
 ### Fixed
 
 - Transaction forms now scroll through fields and actions within the available screen and keyboard space
 - Expense, Income, and Transfer selector labels are centered consistently
 - Add mode now has an explicit Cancel action; Edit mode has working Save, Delete, and Cancel actions
+- Split edits retain existing child transaction identities instead of unnecessarily replacing every line
+- Existing split transactions can be safely converted back to standard transactions
 
 ## [0.1.0-alpha.1] - 2026-09-05
 
@@ -53,3 +67,4 @@ Initial public testing release.
 - The Actuali icon was designed by [u/bdownz](https://www.reddit.com/user/bdownz/)
 
 [0.1.0-alpha.1]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.1
+[0.1.0-alpha.2]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.2

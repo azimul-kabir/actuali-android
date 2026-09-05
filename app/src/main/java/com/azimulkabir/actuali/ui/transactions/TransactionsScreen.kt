@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,6 +44,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actuali.model.Transaction
+import com.azimulkabir.actuali.model.Account
+import com.azimulkabir.actuali.model.CreditCardStatus
 import com.azimulkabir.actuali.ui.components.formatMoneyCents
 import com.azimulkabir.actuali.ui.components.formatStoredDate
 import java.text.NumberFormat
@@ -74,12 +77,16 @@ fun TransactionsScreen(
     onGroupTransactionsByDateChange: (Boolean) -> Unit = {},
     onSetCleared: (Transaction, Boolean) -> Unit = { _, _ -> },
     onDelete: (Transaction) -> Unit = {},
+    account: Account? = null,
+    creditCard: CreditCardStatus? = null,
+    onSaveAccountNote: (String) -> Unit = {},
 ) {
     var search by remember { mutableStateOf("") }
     var showSearch by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var hideCleared by remember { mutableStateOf(false) }
     var selected by remember { mutableStateOf<Transaction?>(null) }
+    var accountNote by remember(account) { mutableStateOf(account?.note.orEmpty()) }
 
     val visible = transactions.filter {
         (accountName == null || it.account == accountName) &&
@@ -120,13 +127,21 @@ fun TransactionsScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
             )
         }
-        val total = visible.sumOf { it.amountCents }
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
-            Text("${visible.size} transactions", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.weight(1f))
-            Amount(total, FontWeight.Bold, hideDecimalPlaces)
-        }
         LazyColumn(modifier = Modifier.fillMaxSize()) {
+            account?.let { selectedAccount ->
+                item("account-details") {
+                    AccountDetails(selectedAccount, creditCard, accountNote, { accountNote = it },
+                        { onSaveAccountNote(accountNote) }, hideDecimalPlaces)
+                }
+            }
+            item("transaction-total") {
+                val total = visible.sumOf { it.amountCents }
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
+                    Text("${visible.size} transactions", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.weight(1f))
+                    Amount(total, FontWeight.Bold, hideDecimalPlaces)
+                }
+            }
             if (groupTransactionsByDate) {
                 visible.groupBy { it.date }.forEach { (date, transactions) ->
                     stickyHeader(key = date) {
@@ -164,6 +179,46 @@ fun TransactionsScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
+    onNoteChange: (String) -> Unit, onSaveNote: () -> Unit, hideDecimals: Boolean) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                DetailAmount("Working balance", account.balanceCents, hideDecimals, true)
+                card?.availableCreditCents?.let { DetailAmount("Available credit", it, hideDecimals) }
+                HorizontalDivider()
+                DetailAmount("Cleared", account.clearedCents, hideDecimals)
+                DetailAmount("Uncleared", account.unclearedCents, hideDecimals)
+                DetailAmount("Reconciled", account.reconciledCents, hideDecimals)
+                card?.config?.limitCents?.let { DetailAmount("Credit limit", it, hideDecimals) }
+            }
+        }
+        card?.let {
+            Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Billing cycle", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(it.cycle.dueSummary(), color = MaterialTheme.colorScheme.primary)
+                    DetailAmount("Cycle spend", it.cycleSpendCents, hideDecimals)
+                }
+            }
+        }
+        Text("Account note", style = MaterialTheme.typography.labelLarge)
+        OutlinedTextField(note, onNoteChange, modifier = Modifier.fillMaxWidth(), minLines = 2,
+            placeholder = { Text("Add note") })
+        Button(onClick = onSaveNote, modifier = Modifier.fillMaxWidth()) { Text("Save note") }
+    }
+}
+
+@Composable
+private fun DetailAmount(label: String, amount: Long, hideDecimals: Boolean, strong: Boolean = false) {
+    Row(Modifier.fillMaxWidth()) {
+        Text(label, modifier = Modifier.weight(1f), fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal)
+        Text(formatMoneyCents(amount, hideDecimals), fontWeight = if (strong) FontWeight.Bold else FontWeight.Normal)
     }
 }
 

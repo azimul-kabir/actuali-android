@@ -202,6 +202,15 @@ fun AppNavigation(
                 onDelete = { transaction ->
                     mutate("Deleting transaction") { repository.deleteTransaction(transaction.id) }
                 },
+                account = accounts.firstOrNull { it.name == transactionAccount },
+                creditCard = creditCards.firstOrNull { card ->
+                    card.accountId == accounts.firstOrNull { it.name == transactionAccount }?.id
+                },
+                onSaveAccountNote = { note ->
+                    accounts.firstOrNull { it.name == transactionAccount }?.let { account ->
+                        mutate("Saving account note") { repository.setAccountNote(account.id, note) }
+                    }
+                },
             )
             DetailDestination.EditTransaction -> AddTransactionScreen(
                 editing = editingTransaction,
@@ -336,6 +345,12 @@ fun AppNavigation(
                     },
                     onSetBudgetAmount = { group, category, amount ->
                         mutate("Updating budget") { repository.setBudgetAmount(group, category, amount, budgetMonth) }
+                    },
+                    onSetCategoryNote = { categoryId, note ->
+                        mutate("Saving category note") { repository.setCategoryNote(categoryId, note) }
+                    },
+                    onSetCategoryCarryover = { categoryId, enabled ->
+                        mutate("Updating rollover") { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
                     },
                 )
                 MainDestination.Accounts -> AccountsScreen(
