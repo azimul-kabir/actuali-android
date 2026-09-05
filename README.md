@@ -44,6 +44,12 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 - A reachable self-hosted Actual Budget server
 - Android Studio with JDK 11 or later for local builds
 
+## Testing releases
+
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actuali-android/releases). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actuali.
+
+Initial alpha builds are debug-signed and intended only for trusted testers. Android updates require matching signing keys, so a later production-signed build may require uninstalling the alpha build first. Back up local data before replacing or uninstalling any test build.
+
 ## Build and test
 
 ```bash
