@@ -46,6 +46,8 @@ import com.azimulkabir.actuali.model.Transaction
 import com.azimulkabir.actuali.ui.components.formatMoneyCents
 import java.text.NumberFormat
 import java.util.Locale
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlin.math.absoluteValue
 
 private val sampleTransactions = listOf(
@@ -129,19 +131,19 @@ fun TransactionsScreen(
             if (groupTransactionsByDate) {
                 visible.groupBy { it.date }.forEach { (date, transactions) ->
                     stickyHeader(key = date) {
-                        Text(date, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
+                        Text(formatTransactionDate(date), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer)
                                 .padding(horizontal = 20.dp, vertical = 8.dp))
                     }
                     items(transactions, key = { it.id }) { transaction ->
-                        TransactionRow(transaction, hideDecimalPlaces, onClick = { onEdit(transaction) },
+                        TransactionRow(transaction, hideDecimalPlaces, showDate = false, onClick = { onEdit(transaction) },
                             onLongClick = { selected = transaction })
                     }
                 }
             } else {
                 items(visible, key = { it.id }) { transaction ->
-                    TransactionRow(transaction, hideDecimalPlaces, onClick = { onEdit(transaction) },
+                    TransactionRow(transaction, hideDecimalPlaces, showDate = true, onClick = { onEdit(transaction) },
                         onLongClick = { selected = transaction })
                 }
             }
@@ -176,7 +178,7 @@ private fun ToggleItem(label: String, checked: Boolean, onChange: (Boolean) -> U
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
-    onClick: () -> Unit, onLongClick: () -> Unit) {
+    showDate: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
         .padding(horizontal = 20.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
         Surface(modifier = Modifier.width(10.dp), shape = CircleShape,
@@ -187,10 +189,24 @@ private fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
             Text("${transaction.category} • ${transaction.account}", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
+        Column(horizontalAlignment = Alignment.End) {
+            Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
+            if (showDate) Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End)
+        }
     }
     HorizontalDivider(modifier = Modifier.padding(start = 42.dp),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+}
+
+internal fun formatTransactionDate(value: String): String {
+    val date = runCatching {
+        when {
+            value.matches(Regex("\\d{8}")) -> LocalDate.parse(value, DateTimeFormatter.BASIC_ISO_DATE)
+            else -> LocalDate.parse(value.take(10), DateTimeFormatter.ISO_LOCAL_DATE)
+        }
+    }.getOrNull() ?: return value
+    return date.format(DateTimeFormatter.ofPattern("dd-MMM-yy", Locale.ENGLISH))
 }
 
 @Composable

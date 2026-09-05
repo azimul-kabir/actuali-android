@@ -68,7 +68,7 @@ data class CreditCardCycle(val statementDay: Int, val dueOffsetDays: Int = DEFAU
         else -> {
             val due = upcomingDueDate(today)
             val formatted = java.time.LocalDate.of(due.year, due.month, due.day)
-                .format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
+                .format(DateTimeFormatter.ofPattern("dd-MMM-yy", Locale.ENGLISH))
             "Due $formatted (${days}d)"
         }
     }
