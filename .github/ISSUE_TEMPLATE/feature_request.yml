@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an Android improvement or portable upstream behavior
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues and BACKEND_PARITY.md first. Never include secrets or sensitive budget data in examples or screenshots.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Alternatives / upstream reference / additional context
+      description: Link relevant Actual Budget or Actuali behavior when available.

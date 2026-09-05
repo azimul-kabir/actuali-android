@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a problem with Actuali for Android
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues first. Report Android-port problems here.
+        Never post passwords, tokens, encryption keys, server credentials, or sensitive budget data. Redact screenshots and logs; use a synthetic budget to reproduce issues.
+  - type: input
+    id: version
+    attributes:
+      label: App version / build
+      placeholder: "e.g. 0.1.0-alpha.1 (release APK or commit SHA)"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Android device
+      placeholder: "e.g. Pixel 8 or emulator"
+    validations:
+      required: true
+  - type: input
+    id: android-version
+    attributes:
+      label: Android version
+      placeholder: "e.g. Android 15 (API 35)"
+    validations:
+      required: true
+  - type: input
+    id: server-version
+    attributes:
+      label: Actual server version
+      placeholder: "Version/tag, unknown, or not connected"
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open…"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Redacted screenshots / additional context
+      description: For sync issues, mention offline/online state and whether the budget is encrypted. Do not attach real budgets.

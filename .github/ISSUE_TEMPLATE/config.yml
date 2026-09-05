@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Actual Budget support
+    url: https://actualbudget.org/docs/
+    about: Server setup and Actual Budget documentation.
+  - name: Actuali for iOS
+    url: https://github.com/MattFaz/actuali
+    about: Use the upstream repository for iOS-specific issues.
