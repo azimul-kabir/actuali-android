@@ -37,6 +37,7 @@ import com.azimulkabir.actuali.ui.accounts.AccountsScreen
 import com.azimulkabir.actuali.ui.budget.BudgetScreen
 import com.azimulkabir.actuali.ui.settings.SettingsScreen
 import com.azimulkabir.actuali.ui.settings.ConnectionScreen
+import com.azimulkabir.actuali.ui.settings.CreditCardsScreen
 import com.azimulkabir.actuali.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actuali.ui.transactions.TransactionsScreen
 import com.azimulkabir.actuali.ui.reports.ReportsScreen
@@ -58,7 +59,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Connection }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Connection, CreditCards }
 
 @Composable
 fun AppNavigation(
@@ -81,6 +82,7 @@ fun AppNavigation(
     val categoryNames = remember(dataVersion) { repository.categoryNames() }
     val payeeNames = remember(dataVersion) { repository.payeeNames() }
     val reportSnapshot = remember(dataVersion) { repository.reports() }
+    val creditCards = remember(dataVersion) { repository.creditCards() }
     var destination by rememberSaveable {
         mutableStateOf(MainDestination.entries.firstOrNull { it.label == displayPreferences.startPage }
             ?: MainDestination.Accounts)
@@ -230,6 +232,19 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
             )
+            DetailDestination.CreditCards -> CreditCardsScreen(
+                cards = creditCards,
+                accounts = accounts,
+                hideDecimalPlaces = hideDecimalPlaces,
+                onBack = { detail = DetailDestination.Main },
+                onSave = { accountId, day, offset, limit ->
+                    mutate("Saving credit card") { repository.setCreditCard(accountId, day, offset, limit) }
+                },
+                onRemove = { accountId ->
+                    mutate("Removing credit card") { repository.setCreditCard(accountId, null) }
+                },
+                modifier = contentModifier,
+            )
             DetailDestination.Main -> if (!repository.isUsingActualBudget && destination != MainDestination.More) {
                 NoBudgetScreen(contentModifier) {
                     destination = MainDestination.More
@@ -316,6 +331,7 @@ fun AppNavigation(
                     transactions = transactions,
                     hideDecimalPlaces = hideDecimalPlaces,
                     showMonthlySummary = showAccountsMonthlySummary,
+                    creditCards = creditCards,
                     onAccountClick = {
                         transactionAccount = it
                         transactionCategory = null; transactionMonth = null
@@ -380,6 +396,7 @@ fun AppNavigation(
                         displayPreferences.showAccountsMonthlySummary = it
                         showAccountsMonthlySummary = it
                     },
+                    onCreditCardsClick = { detail = DetailDestination.CreditCards },
                 )
             }
         }

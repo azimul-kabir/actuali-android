@@ -19,7 +19,11 @@ import com.azimulkabir.actuali.model.Type
 import com.azimulkabir.actuali.model.ReportCategory
 import com.azimulkabir.actuali.model.ReportMonth
 import com.azimulkabir.actuali.model.ReportSnapshot
+import com.azimulkabir.actuali.model.CreditCardConfig
+import com.azimulkabir.actuali.model.CreditCardCycle
+import com.azimulkabir.actuali.model.CreditCardStatus
 import com.azimulkabir.actuali.data.sync.ActualSyncScheduler
+import org.json.JSONObject
 
 class ActualiRepository(context: Context) {
     private val appContext = context.applicationContext
@@ -103,16 +107,51 @@ class ActualiRepository(context: Context) {
                     offBudget = it.offBudget,
                     closed = it.closed,
                     balanceCents = it.balanceCents,
+                    id = it.id,
                 )
             }
         }
         return emptyList()
     }
 
+    fun creditCards(includeClosed: Boolean = false): List<CreditCardStatus> {
+        val db = actualDatabase ?: return emptyList()
+        val configs = db.fetchCreditCardConfigs()
+        return db.fetchAccounts().mapNotNull { account ->
+            val config = configs[account.id] ?: return@mapNotNull null
+            if (account.closed && !includeClosed) return@mapNotNull null
+            val cycle = CreditCardCycle(config.statementDay, config.dueOffsetDays)
+            val range = cycle.cycleRange()
+            CreditCardStatus(
+                account.id, account.name, account.balanceCents, config,
+                db.fetchAccountSpend(account.id, range.first.yyyymmdd, range.second.yyyymmdd),
+                config.limitCents?.plus(account.balanceCents), account.closed,
+            )
+        }.sortedWith(compareBy({ it.cycle.daysUntilDue() }, { it.accountName.lowercase() }))
+    }
+
+    fun setCreditCard(accountId: String, statementDay: Int?, dueOffsetDays: Int = CreditCardCycle.DEFAULT_DUE_OFFSET_DAYS,
+        limitCents: Long? = null): Boolean {
+        val db = actualDatabase ?: return false
+        require(db.fetchAccounts().any { it.id == accountId }) { "That account no longer exists" }
+        val value = statementDay?.let {
+            require(it in 1..31) { "Statement day must be between 1 and 31" }
+            require(dueOffsetDays in 1..CreditCardCycle.MAX_DUE_OFFSET_DAYS) { "Payment due period must be between 1 and 60 days" }
+            JSONObject().put("statementDay", it).put("dueOffsetDays", dueOffsetDays).apply {
+                if (limitCents != null && limitCents > 0) put("limit", limitCents)
+            }.toString()
+        }
+        actualEntities!!.setPreference(ActualBudgetDatabase.CREDIT_CARD_PREFERENCE_PREFIX + accountId, value)
+        return true
+    }
+
     fun transactions(): List<Transaction> {
         actualDatabase?.let { db ->
             val accountNames = db.fetchAccounts().associate { it.id to it.name }
-            return db.fetchTransactions().map {
+            // The database API defaults to a 500-row page. This repository currently backs
+            // an in-memory Compose list, so explicitly load the complete history; otherwise
+            // older synced transactions exist locally but silently disappear from Accounts.
+            return db.fetchTransactions(limit = Int.MAX_VALUE).map {
                 Transaction(
                     id = it.id,
                     date = it.date.toString(),

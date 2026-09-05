@@ -152,6 +152,24 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun creditCardConfigUsesIosPreferenceContractAndSyncLog() = withDatabase { database ->
+        val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
+        writer.setPreference(
+            ActualBudgetDatabase.CREDIT_CARD_PREFERENCE_PREFIX + "checking",
+            "{\"statementDay\":18,\"dueOffsetDays\":25,\"limit\":500000}",
+        )
+        val config = database.fetchCreditCardConfigs().getValue("checking")
+        assertEquals(18, config.statementDay)
+        assertEquals(25, config.dueOffsetDays)
+        assertEquals(500_000L, config.limitCents)
+        assertTrue(database.getMessagesSince(com.azimulkabir.actuali.data.sync.HlcTimestamp.ZERO.toString()).any {
+            it.dataset == "preferences" && it.row == "actuali:credit_card:checking" && it.column == "value"
+        })
+        writer.setPreference(ActualBudgetDatabase.CREDIT_CARD_PREFERENCE_PREFIX + "checking", null)
+        assertTrue(database.fetchCreditCardConfigs().isEmpty())
+    }
+
+    @Test
     fun createsActualAccountGraphAndCategoryMappingsThroughCrdt() = withDatabase { database ->
         var number = 0
         val writer = ActualEntityWriter(database, nodeId = "eeeeeeeeeeeeeeee",
@@ -321,6 +339,7 @@ class ActualBudgetReadModelTest {
             db.execSQL("CREATE TABLE zero_budgets (id TEXT PRIMARY KEY, month INTEGER, category TEXT, amount INTEGER, carryover INTEGER)")
             db.execSQL("CREATE TABLE messages_clock (id INTEGER PRIMARY KEY, clock TEXT)")
             db.execSQL("CREATE TABLE messages_crdt (id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL UNIQUE, dataset TEXT NOT NULL, row TEXT NOT NULL, `column` TEXT NOT NULL, value BLOB NOT NULL)")
+            db.execSQL("CREATE TABLE preferences (id TEXT PRIMARY KEY, value TEXT)")
             db.execSQL("CREATE TABLE rules (id TEXT PRIMARY KEY, stage TEXT, conditions_op TEXT, conditions TEXT, actions TEXT, tombstone INTEGER)")
             db.execSQL("CREATE TABLE schedules (id TEXT PRIMARY KEY, rule TEXT, name TEXT, posts_transaction INTEGER, completed INTEGER, custom_upcoming_length TEXT, tombstone INTEGER, sort_order REAL)")
             db.execSQL("CREATE TABLE schedules_next_date (id TEXT PRIMARY KEY, schedule_id TEXT, local_next_date INTEGER, local_next_date_ts INTEGER, base_next_date INTEGER, base_next_date_ts INTEGER)")

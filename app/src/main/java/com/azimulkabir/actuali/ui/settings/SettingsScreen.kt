@@ -46,6 +46,7 @@ fun SettingsScreen(
     onGroupTransactionsByDateChange: (Boolean) -> Unit = {},
     showAccountsMonthlySummary: Boolean = true,
     onShowAccountsMonthlySummaryChange: (Boolean) -> Unit = {},
+    onCreditCardsClick: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Text(
@@ -67,6 +68,7 @@ fun SettingsScreen(
             showAccountsMonthlySummary,
             onShowAccountsMonthlySummaryChange,
         )
+        SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, onCreditCardsClick)
         SettingsSection("Display")
         SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
         SettingsChoice("Start page", startPage, listOf("Budget", "Accounts", "Add", "Reports", "More"), onStartPageChange)

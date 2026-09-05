@@ -32,6 +32,8 @@ import com.azimulkabir.actuali.data.sync.MerkleJson
 import com.azimulkabir.actuali.data.sync.MerkleNode
 import com.azimulkabir.actuali.data.sync.MurmurHash3
 import org.json.JSONObject
+import com.azimulkabir.actuali.model.CreditCardConfig
+import com.azimulkabir.actuali.model.CreditCardCycle
 import java.io.Closeable
 import java.io.File
 
@@ -85,6 +87,46 @@ class ActualBudgetDatabase private constructor(
         }
         return result
     }
+
+    /** Actuali's cross-platform card metadata stored in Actual's synced preferences table. */
+    @Synchronized
+    fun fetchCreditCardConfigs(): Map<String, CreditCardConfig> {
+        if (!hasTable("preferences")) return emptyMap()
+        val prefix = CREDIT_CARD_PREFERENCE_PREFIX
+        val result = linkedMapOf<String, CreditCardConfig>()
+        database.rawQuery(
+            "SELECT id, value FROM preferences WHERE id LIKE ? AND value IS NOT NULL",
+            arrayOf("$prefix%"),
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                val id = cursor.stringOrNull(0) ?: continue
+                val value = cursor.stringOrNull(1) ?: continue
+                runCatching {
+                    val json = JSONObject(value)
+                    val day = json.getInt("statementDay")
+                    val offset = json.optInt("dueOffsetDays", CreditCardCycle.DEFAULT_DUE_OFFSET_DAYS)
+                    val limit = if (json.has("limit") && !json.isNull("limit")) json.getLong("limit") else null
+                    CreditCardConfig(day, offset, limit)
+                }.getOrNull()?.let { result[id.removePrefix(prefix)] = it }
+            }
+        }
+        return result
+    }
+
+    /** Positive total of charges/debits in an inclusive billing-cycle window. */
+    @Synchronized
+    fun fetchAccountSpend(accountId: String, fromDate: Int, toDate: Int): Long = database.rawQuery(
+        """
+            SELECT COALESCE(SUM(CASE WHEN t.amount < 0 THEN -t.amount ELSE 0 END), 0)
+            FROM transactions t
+            LEFT JOIN transactions p ON p.id = t.parent_id
+            WHERE t.acct = ? AND t.date >= ? AND t.date <= ?
+              AND (t.tombstone = 0 OR t.tombstone IS NULL)
+              AND (t.isChild = 0 OR t.isChild IS NULL OR
+                   (p.id IS NOT NULL AND (p.tombstone = 0 OR p.tombstone IS NULL)))
+              AND (t.isParent = 0 OR t.isParent IS NULL)
+        """.trimIndent(), arrayOf(accountId, fromDate.toString(), toDate.toString()),
+    ).use { cursor -> if (cursor.moveToFirst()) cursor.getLong(0) else 0L }
 
     @Synchronized
     fun fetchPayees(): List<ActualPayee> {
@@ -932,6 +974,7 @@ class ActualBudgetDatabase private constructor(
     data class ClockRecord(val timestamp: String, val merkle: MerkleNode)
 
     companion object {
+        const val CREDIT_CARD_PREFERENCE_PREFIX = "actuali:credit_card:"
         private const val transactionSelect = """
             SELECT t.id, t.isParent, t.isChild, t.acct, t.category, t.amount,
                    t.description, t.notes, t.date, t.imported_description, t.schedule,

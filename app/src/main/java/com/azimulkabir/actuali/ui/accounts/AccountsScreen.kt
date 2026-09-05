@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actuali.model.Account
 import com.azimulkabir.actuali.model.Transaction
+import com.azimulkabir.actuali.model.CreditCardStatus
 import com.azimulkabir.actuali.ui.components.RenameDialog
 import com.azimulkabir.actuali.ui.components.NewAccountDialog
 import com.azimulkabir.actuali.ui.components.formatMoneyCents
@@ -80,6 +81,7 @@ fun AccountsScreen(
     transactions: List<Transaction> = emptyList(),
     hideDecimalPlaces: Boolean = false,
     showMonthlySummary: Boolean = true,
+    creditCards: List<CreditCardStatus> = emptyList(),
     onAccountClick: (String) -> Unit = {},
     onAllAccountsClick: () -> Unit = {},
     onCloseAccount: (Account) -> Unit = {},
@@ -134,6 +136,7 @@ fun AccountsScreen(
                     ) {
                         AccountRow(
                             account = account,
+                            creditCard = creditCards.firstOrNull { it.accountId == account.id },
                             showTopDivider = index > 0,
                             onClick = { onAccountClick(account.name) },
                         onLongClick = { selectedAccount = account },
@@ -239,6 +242,7 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
 @Composable
 private fun AccountRow(
     account: Account,
+    creditCard: CreditCardStatus?,
     showTopDivider: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -255,7 +259,8 @@ private fun AccountRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(account.name, style = MaterialTheme.typography.bodyMedium)
-            Text(account.type, style = MaterialTheme.typography.bodySmall,
+            Text(creditCard?.let { "${it.cycle.dueShortSummary()} · Spend ${formatMoneyCents(it.cycleSpendCents, hideDecimalPlaces)}" }
+                ?: account.type, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         BalanceText(account.balanceCents, FontWeight.SemiBold, hideDecimalPlaces)
