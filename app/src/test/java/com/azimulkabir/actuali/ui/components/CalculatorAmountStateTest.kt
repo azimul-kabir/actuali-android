@@ -40,4 +40,17 @@ class CalculatorAmountStateTest {
         state.digit(5); state.digit(0); state.digit(0)
         assertEquals(500, state.finish())
     }
+
+    @Test fun conventionalDigitsEnterWholeUnitsLikeIos() {
+        val state = CalculatorAmountState(conventionalAmountEntry = true)
+        state.digit(3); state.digit(2); state.digit(4)
+        assertEquals("324.00", state.display)
+        assertEquals(32_400, state.finish())
+    }
+
+    @Test fun conventionalDecimalAcceptsTwoFractionDigits() {
+        val state = CalculatorAmountState(conventionalAmountEntry = true)
+        state.digit(1); state.digit(2); state.decimalPoint(); state.digit(3); state.digit(4); state.digit(9)
+        assertEquals(1_234, state.finish())
+    }
 }

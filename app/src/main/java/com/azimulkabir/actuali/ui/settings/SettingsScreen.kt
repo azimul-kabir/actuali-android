@@ -47,6 +47,8 @@ fun SettingsScreen(
     showAccountsMonthlySummary: Boolean = true,
     onShowAccountsMonthlySummaryChange: (Boolean) -> Unit = {},
     onCreditCardsClick: () -> Unit = {},
+    conventionalAmountEntry: Boolean = false,
+    onConventionalAmountEntryChange: (Boolean) -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Text(
@@ -62,6 +64,8 @@ fun SettingsScreen(
             onDefaultAccountChange(it.takeUnless { value -> value == "None" })
         }
         SettingsToggle("Group transactions by date", "Use dated sections in transaction lists", groupTransactionsByDate, onGroupTransactionsByDateChange)
+        SettingsToggle("Conventional amount entry", "Type 324 as 324.00 instead of filling cents first",
+            conventionalAmountEntry, onConventionalAmountEntryChange)
         SettingsToggle(
             "Account monthly summary",
             "Show Income, Expenses and Net at the top of Accounts",

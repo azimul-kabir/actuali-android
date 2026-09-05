@@ -27,15 +27,19 @@ import androidx.compose.ui.unit.dp
 fun CalculatorAmountSheet(
     title: String,
     initialCents: Long,
+    conventionalAmountEntry: Boolean = false,
     onDismiss: () -> Unit,
     onApply: (Long) -> Unit,
 ) {
-    val calculator = remember(initialCents) { CalculatorAmountState(initialCents) }
+    val calculator = remember(initialCents, conventionalAmountEntry) {
+        CalculatorAmountState(initialCents, conventionalAmountEntry = conventionalAmountEntry)
+    }
     var revision by remember { mutableIntStateOf(0) }
     fun press(key: String) {
         when (key) {
             "C" -> calculator.clear()
             "⌫" -> calculator.backspace()
+            "." -> calculator.decimalPoint()
             "+" -> calculator.operator(CalculatorAmountState.Operator.ADD)
             "−" -> calculator.operator(CalculatorAmountState.Operator.SUBTRACT)
             "×" -> calculator.operator(CalculatorAmountState.Operator.MULTIPLY)
@@ -49,10 +53,11 @@ fun CalculatorAmountSheet(
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(calculator.display, style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp))
-            listOf(
+            val rows = listOf(
                 listOf("7", "8", "9", "÷"), listOf("4", "5", "6", "×"),
-                listOf("1", "2", "3", "−"), listOf("C", "0", "⌫", "+"),
-            ).forEach { keys ->
+                listOf("1", "2", "3", "−"),
+            ) + listOf(if (conventionalAmountEntry) listOf("C", "0", ".", "⌫", "+") else listOf("C", "0", "⌫", "+"))
+            rows.forEach { keys ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     keys.forEach { key -> Button(onClick = { press(key) }, modifier = Modifier.weight(1f)) { Text(key) } }
                 }

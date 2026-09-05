@@ -59,6 +59,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, true)
         set(value) { preferences.edit().putBoolean(SHOW_ACCOUNTS_MONTHLY_SUMMARY, value).apply() }
 
+    var conventionalAmountEntry: Boolean
+        get() = preferences.getBoolean(CONVENTIONAL_AMOUNT_ENTRY, false)
+        set(value) { preferences.edit().putBoolean(CONVENTIONAL_AMOUNT_ENTRY, value).apply() }
+
     private companion object {
         const val HIDE_DECIMAL_PLACES = "hide_decimal_places"
         const val SHOW_HIDDEN_CATEGORIES = "show_hidden_categories"
@@ -73,5 +77,6 @@ class DisplayPreferences(context: Context) {
         const val DEFAULT_ACCOUNT = "default_account"
         const val GROUP_TRANSACTIONS_BY_DATE = "group_transactions_by_date"
         const val SHOW_ACCOUNTS_MONTHLY_SUMMARY = "show_accounts_monthly_summary"
+        const val CONVENTIONAL_AMOUNT_ENTRY = "conventional_amount_entry"
     }
 }

@@ -1,11 +1,13 @@
 package com.azimulkabir.actuali.ui.transactions
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,11 +23,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,6 +64,7 @@ fun AddTransactionScreen(
     payeeOptions: List<String> = emptyList(),
     defaultAccount: String? = null,
     hideDecimalPlaces: Boolean = false,
+    conventionalAmountEntry: Boolean = false,
 ) {
     var amountCents by remember(editing) { mutableStateOf(abs(editing?.amountCents ?: 0L)) }
     var showCalculator by remember { mutableStateOf(false) }
@@ -109,9 +113,15 @@ fun AddTransactionScreen(
                     )
                 }
             }
-            OutlinedButton(onClick = { showCalculator = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("Amount", modifier = Modifier.weight(1f))
-                Text("৳${centsToInput(amountCents)}", style = MaterialTheme.typography.titleMedium)
+            Box(Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = "৳${centsToInput(amountCents)}", onValueChange = {}, readOnly = true,
+                    label = { Text("Amount") }, singleLine = true,
+                    trailingIcon = { Icon(Icons.Outlined.Calculate, contentDescription = null) },
+                    supportingText = { if (hideDecimalPlaces) Text("Decimal places are hidden in lists") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Box(Modifier.matchParentSize().clickable { showCalculator = true })
             }
             if (transactionType != Type.TRANSFER.displayName) {
                 PickerTextField(
@@ -138,9 +148,14 @@ fun AddTransactionScreen(
                     onValueChange = { transferAccount = it }, editable = true,
                 )
             }
-            OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("Date", modifier = Modifier.weight(1f))
-                Text(formatDate(date), style = MaterialTheme.typography.bodyLarge)
+            Box(Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = formatDate(date), onValueChange = {}, readOnly = true,
+                    label = { Text("Date") }, singleLine = true,
+                    trailingIcon = { Icon(Icons.Outlined.DateRange, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Box(Modifier.matchParentSize().clickable { showDatePicker = true })
             }
             OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, minLines = 2,
                 modifier = Modifier.fillMaxWidth())
@@ -174,6 +189,7 @@ fun AddTransactionScreen(
     if (showCalculator) CalculatorAmountSheet(
         title = if (editing == null) "Transaction amount" else "Edit amount",
         initialCents = amountCents,
+        conventionalAmountEntry = conventionalAmountEntry,
         onDismiss = { showCalculator = false },
         onApply = { amountCents = it; showCalculator = false },
     )

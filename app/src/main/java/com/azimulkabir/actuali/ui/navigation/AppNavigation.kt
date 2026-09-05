@@ -105,6 +105,7 @@ fun AppNavigation(
     var defaultAccount by remember { mutableStateOf(displayPreferences.defaultAccount) }
     var groupTransactionsByDate by remember { mutableStateOf(displayPreferences.groupTransactionsByDate) }
     var showAccountsMonthlySummary by remember { mutableStateOf(displayPreferences.showAccountsMonthlySummary) }
+    var conventionalAmountEntry by remember { mutableStateOf(displayPreferences.conventionalAmountEntry) }
     BalanceVisibility.hidden = hideBalances
     val snackbarHostState = remember { SnackbarHostState() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -222,6 +223,7 @@ fun AppNavigation(
                     payeeOptions = payeeNames,
                     defaultAccount = defaultAccount,
                     hideDecimalPlaces = hideDecimalPlaces,
+                    conventionalAmountEntry = conventionalAmountEntry,
             )
             DetailDestination.Connection -> ConnectionScreen(
                 onBack = { detail = DetailDestination.Main },
@@ -397,6 +399,11 @@ fun AppNavigation(
                         showAccountsMonthlySummary = it
                     },
                     onCreditCardsClick = { detail = DetailDestination.CreditCards },
+                    conventionalAmountEntry = conventionalAmountEntry,
+                    onConventionalAmountEntryChange = {
+                        displayPreferences.conventionalAmountEntry = it
+                        conventionalAmountEntry = it
+                    },
                 )
             }
         }
