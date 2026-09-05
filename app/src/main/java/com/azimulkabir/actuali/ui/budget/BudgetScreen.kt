@@ -420,7 +420,7 @@ private fun BudgetGroupHeader(
         Row(
             modifier = Modifier.fillMaxWidth().combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
-            ).animateContentSize().padding(horizontal = 12.dp, vertical = 9.dp),
+            ).animateContentSize().padding(horizontal = 16.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(modifier = Modifier.weight(1.35f), verticalAlignment = Alignment.CenterVertically) {
@@ -456,7 +456,8 @@ private fun AmountColumn(
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.End) {
         Text(label, style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+            modifier = if (balance) Modifier.padding(end = 8.dp) else Modifier)
         if (balance) {
             BalancePill(amount, hideDecimalPlaces)
         } else {

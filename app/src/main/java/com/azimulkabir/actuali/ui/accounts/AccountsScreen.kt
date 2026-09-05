@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -234,6 +235,8 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
             Text(section.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f))
             BalanceText(total, FontWeight.SemiBold, hideDecimalPlaces)
+            // Match the space occupied by the account-row disclosure chevron.
+            Spacer(Modifier.width(20.dp))
         }
     }
 }
