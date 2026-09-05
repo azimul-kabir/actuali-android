@@ -45,6 +45,13 @@ class CalculatorAmountState(initialCents: Long = 0, private val allowsNegative: 
         }
     }
 
+    fun clear() {
+        operandCents = 0
+        accumulatorCents = null
+        pending = null
+        hasOperand = false
+    }
+
     fun toggleSign() {
         if (allowsNegative) operandCents = -operandCents
     }

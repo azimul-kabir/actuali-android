@@ -33,4 +33,11 @@ class CalculatorAmountStateTest {
         state.digit(0)
         assertEquals(1250, state.finish())
     }
+
+    @Test fun clearResetsAnExistingEditedAmount() {
+        val state = CalculatorAmountState(12_345)
+        state.clear()
+        state.digit(5); state.digit(0); state.digit(0)
+        assertEquals(500, state.finish())
+    }
 }

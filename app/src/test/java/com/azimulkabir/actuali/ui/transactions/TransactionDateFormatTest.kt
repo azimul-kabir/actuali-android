@@ -2,6 +2,9 @@ package com.azimulkabir.actuali.ui.transactions
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import com.azimulkabir.actuali.ui.components.parseStoredDate
+import com.azimulkabir.actuali.ui.components.storageDate
+import java.time.LocalDate
 
 class TransactionDateFormatTest {
     @Test fun formatsActualCompactDate() {
@@ -14,5 +17,11 @@ class TransactionDateFormatTest {
 
     @Test fun preservesHumanFriendlyFallbacks() {
         assertEquals("Today", formatTransactionDate("Today"))
+    }
+
+    @Test fun displayFormatRoundTripsToActualStorageDate() {
+        val date = parseStoredDate("05-Sep-26")
+        assertEquals(LocalDate.of(2026, 9, 5), date)
+        assertEquals("20260905", storageDate(date!!))
     }
 }

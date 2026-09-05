@@ -44,10 +44,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actuali.model.Transaction
 import com.azimulkabir.actuali.ui.components.formatMoneyCents
+import com.azimulkabir.actuali.ui.components.formatStoredDate
 import java.text.NumberFormat
 import java.util.Locale
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import kotlin.math.absoluteValue
 
 private val sampleTransactions = listOf(
@@ -200,13 +199,7 @@ private fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
 }
 
 internal fun formatTransactionDate(value: String): String {
-    val date = runCatching {
-        when {
-            value.matches(Regex("\\d{8}")) -> LocalDate.parse(value, DateTimeFormatter.BASIC_ISO_DATE)
-            else -> LocalDate.parse(value.take(10), DateTimeFormatter.ISO_LOCAL_DATE)
-        }
-    }.getOrNull() ?: return value
-    return date.format(DateTimeFormatter.ofPattern("dd-MMM-yy", Locale.ENGLISH))
+    return formatStoredDate(value)
 }
 
 @Composable
