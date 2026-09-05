@@ -456,8 +456,7 @@ private fun AmountColumn(
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.End) {
         Text(label, style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-            modifier = if (balance) Modifier.padding(end = 8.dp) else Modifier)
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         if (balance) {
             BalancePill(amount, hideDecimalPlaces)
         } else {
@@ -594,20 +593,10 @@ private fun BalancePill(amount: Long, hideDecimalPlaces: Boolean) {
         style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.SemiBold,
         color = when {
-            positive -> MaterialTheme.colorScheme.onPrimaryContainer
-            negative -> MaterialTheme.colorScheme.onErrorContainer
+            positive -> MaterialTheme.colorScheme.primary
+            negative -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         },
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                when {
-                    positive -> MaterialTheme.colorScheme.primaryContainer
-                    negative -> MaterialTheme.colorScheme.errorContainer
-                    else -> MaterialTheme.colorScheme.surfaceContainerHighest
-                }
-            )
-            .padding(horizontal = 8.dp, vertical = 3.dp),
         maxLines = 1,
     )
 }
