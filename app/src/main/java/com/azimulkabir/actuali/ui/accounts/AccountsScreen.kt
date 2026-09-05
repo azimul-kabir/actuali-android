@@ -184,7 +184,7 @@ private fun AccountsSummary(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 12.dp, bottom = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("All accounts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f))
@@ -200,7 +200,8 @@ private fun AccountsSummary(
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     SummaryStat("Income", income, hideDecimalPlaces = hideDecimalPlaces)
                     SummaryStat("Expenses", expenses, Alignment.CenterHorizontally, hideDecimalPlaces)
-                    SummaryStat("Net", income + expenses, Alignment.End, hideDecimalPlaces)
+                    SummaryStat("Net", income + expenses, Alignment.End, hideDecimalPlaces,
+                        Modifier.padding(end = 24.dp))
                 }
             }
         }
@@ -209,8 +210,8 @@ private fun AccountsSummary(
 
 @Composable
 private fun SummaryStat(label: String, amount: Long, alignment: Alignment.Horizontal = Alignment.Start,
-    hideDecimalPlaces: Boolean) {
-    Column(horizontalAlignment = alignment) {
+    hideDecimalPlaces: Boolean, modifier: Modifier = Modifier) {
+    Column(horizontalAlignment = alignment, modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         BalanceText(amount, FontWeight.SemiBold, hideDecimalPlaces)
