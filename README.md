@@ -70,7 +70,7 @@ Writes are applied locally and represented as Actual-compatible CRDT messages. W
 
 ## Upstream relationship and credits
 
-This Android port is based on the original **[Actuali for iOS repository](https://github.com/MattFaz/actuali)**. Its product design, tested behavior, Swift implementation, documentation, and sync work are the primary reference for this port. Please use that repository for the iPhone and iPad app and direct iOS-specific contributions and issues there. Copyright attribution from the upstream repository is preserved in this project's license.
+This Android port is based on **[Matt Farrell's Actuali for iOS](https://github.com/MattFaz/actuali)**, which is the upstream behavioral reference for this project. Its product design, tested behavior, Swift implementation, documentation, and sync work guide the port. Please use the original repository for the iPhone and iPad app and direct iOS-specific contributions and issues there. Copyright attribution from the upstream repository is preserved in this project's license.
 
 Actuali itself builds on **[Actual Budget](https://github.com/actualbudget/actual)**. Portions of the synchronization behavior derive from Actual Budget's MIT-licensed CRDT and loot-core implementations, originally copyrighted by James Long and subsequent contributors.
 

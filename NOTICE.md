@@ -2,7 +2,7 @@
 
 ## Actuali for iOS
 
-Actuali for Android is an independent Android port based on the design and implementation in the original [Actuali for iOS repository](https://github.com/MattFaz/actuali).
+Actuali for Android is an independent Android port based on [Matt Farrell's Actuali for iOS](https://github.com/MattFaz/actuali), which serves as the upstream behavioral reference for this project.
 
 The original project provided the behavioral reference for the budget, account, transaction, synchronization, backup, rules, schedules, reports, settings, and credit-card workflows implemented here. Its source is licensed under the MIT License, copyright 2025–2026 Matt Farrell.
 

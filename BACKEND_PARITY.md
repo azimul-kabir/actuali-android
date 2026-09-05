@@ -1,6 +1,6 @@
 # Actuali Android backend parity
 
-The original [Actuali for iOS repository](https://github.com/MattFaz/actuali)
+The original [Actuali for iOS project by Matt Farrell](https://github.com/MattFaz/actuali)
 is the upstream behavioral reference for this independent Android port. A local
 checkout may be available at `../actuali-ios/Actuali/Actuali` during development,
 but must not be assumed by builds or tests. Android platform integrations
