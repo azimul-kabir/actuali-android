@@ -1,14 +1,18 @@
 package com.azimulkabir.actua.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,9 +27,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+private enum class SettingsPage(val title: String) {
+    Main("More"), Data("Data"), Transactions("Transactions & Automation"),
+    Display("Display"), Privacy("Privacy"), Information("Information"),
+}
 
 @Composable
 fun SettingsScreen(
@@ -55,52 +65,66 @@ fun SettingsScreen(
     conventionalAmountEntry: Boolean = false,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
 ) {
+    var page by rememberSaveable { mutableStateOf(SettingsPage.Main) }
+    BackHandler(enabled = page != SettingsPage.Main) { page = SettingsPage.Main }
     Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Text(
-            "More",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(20.dp),
-        )
-        SettingsSection("Data")
-        SettingsRow("Connection & Data", "Actual server, budgets, local data and backups", true, onConnectionClick)
-        SettingsSection("Transactions & Automation")
-        SettingsChoice("Default account", defaultAccount ?: "None", listOf("None") + accountOptions) {
-            onDefaultAccountChange(it.takeUnless { value -> value == "None" })
-        }
-        SettingsToggle("Group transactions by date", "Use dated sections in transaction lists", groupTransactionsByDate, onGroupTransactionsByDateChange)
-        SettingsToggle("Conventional amount entry", "Type 324 as 324.00 instead of filling cents first",
-            conventionalAmountEntry, onConventionalAmountEntryChange)
-        SettingsToggle(
-            "Account monthly summary",
-            "Show Income, Expenses and Net at the top of Accounts",
-            showAccountsMonthlySummary,
-            onShowAccountsMonthlySummaryChange,
-        )
-        SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, onCreditCardsClick)
-        SettingsRow("Rules", "Automatically categorize and transform transactions", true, onRulesClick)
-        SettingsSection("Display")
-        SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
-            onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)
-        }
-        if (currencyCode.isNotBlank()) {
-            SettingsToggle(
-                "Symbol only",
-                "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
-                currencySymbolOnly,
-                onCurrencySymbolOnlyChange,
+        SettingsHeader(page.title, page != SettingsPage.Main) { page = SettingsPage.Main }
+        when (page) {
+            SettingsPage.Main -> {
+                SettingsRow("Data", "Connection, budgets, local data and backups", true) { page = SettingsPage.Data }
+                SettingsRow("Transactions & Automation", "Entry defaults, account summaries, cards and rules", true) { page = SettingsPage.Transactions }
+                SettingsRow("Display", "Currency, appearance, start page and decimals", true) { page = SettingsPage.Display }
+                SettingsRow("Privacy", "Control sensitive information on screen", true) { page = SettingsPage.Privacy }
+                SettingsRow("Information", "About Actua and project credits", true) { page = SettingsPage.Information }
+            }
+            SettingsPage.Data -> {
+                SettingsRow("Connection & Data", "Actual server, budgets, local data and backups", true, onConnectionClick)
+            }
+            SettingsPage.Transactions -> {
+                SettingsChoice("Default account", defaultAccount ?: "None", listOf("None") + accountOptions) {
+                    onDefaultAccountChange(it.takeUnless { value -> value == "None" })
+                }
+                SettingsToggle("Group transactions by date", "Use dated sections in transaction lists", groupTransactionsByDate, onGroupTransactionsByDateChange)
+                SettingsToggle("Conventional amount entry", "Type 324 as 324.00 instead of filling cents first",
+                    conventionalAmountEntry, onConventionalAmountEntryChange)
+                SettingsToggle("Account monthly summary", "Show Income, Expenses and Net at the top of Accounts",
+                    showAccountsMonthlySummary, onShowAccountsMonthlySummaryChange)
+                SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, onCreditCardsClick)
+                SettingsRow("Rules", "Automatically categorize and transform transactions", true, onRulesClick)
+            }
+            SettingsPage.Display -> {
+                SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
+                    onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)
+                }
+                if (currencyCode.isNotBlank()) SettingsToggle("Symbol only",
+                    "Show ${'$'} instead of US${'$'}, CA${'$'} or A${'$'} where applicable",
+                    currencySymbolOnly, onCurrencySymbolOnlyChange)
+                SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
+                SettingsChoice("Start page", startPage, listOf("Budget", "Accounts", "Add", "Reports", "More"), onStartPageChange)
+                SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values",
+                    hideDecimalPlaces, onHideDecimalPlacesChange)
+            }
+            SettingsPage.Privacy -> SettingsToggle("Hide balances", "Mask budget, account and transaction amounts",
+                hideBalances, onHideBalancesChange)
+            SettingsPage.Information -> ListItem(
+                headlineContent = { Text("Actua") },
+                supportingContent = { Text("Actual-compatible local budget and sync client") },
             )
         }
-        SettingsChoice("Appearance", appearance, listOf("System", "Light", "Dark"), onAppearanceChange)
-        SettingsChoice("Start page", startPage, listOf("Budget", "Accounts", "Add", "Reports", "More"), onStartPageChange)
-        SettingsToggle("Hide decimal places", "Round displayed amounts without changing their values", hideDecimalPlaces, onHideDecimalPlacesChange)
-        SettingsSection("Privacy")
-        SettingsToggle("Hide balances", "Mask budget, account and transaction amounts", hideBalances, onHideBalancesChange)
-        SettingsSection("Information")
-        ListItem(
-            headlineContent = { Text("Actua") },
-            supportingContent = { Text("Actual-compatible local budget and sync client") },
-        )
+    }
+}
+
+@Composable
+private fun SettingsHeader(title: String, showBack: Boolean, onBack: () -> Unit) {
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        if (showBack) IconButton(onClick = onBack) {
+            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
+        }
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = if (showBack) 4.dp else 16.dp, vertical = 10.dp))
     }
 }
 
