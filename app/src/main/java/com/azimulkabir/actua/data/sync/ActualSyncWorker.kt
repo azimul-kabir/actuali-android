@@ -38,6 +38,7 @@ object ActualSyncRunner {
         val credentials = CredentialStore(app)
         val token = credentials.token() ?: return SyncRunResult.NotConfigured
         val serverUrl = credentials.serverUrl.takeIf(String::isNotBlank) ?: return SyncRunResult.NotConfigured
+        val fallbackUrl = credentials.fallbackServerUrl.takeIf { it.isNotBlank() && it != serverUrl }
         val files = BudgetFileManager(app)
         val budgetId = ActiveBudgetStore(app).budgetId ?: return SyncRunResult.NotConfigured
         val metadata = files.listLocalBudgets().firstOrNull { it.id == budgetId } ?: return SyncRunResult.NotConfigured
@@ -49,12 +50,16 @@ object ActualSyncRunner {
         if (metadata.encryptKeyId != null && loadedKey?.keyId != metadata.encryptKeyId) return SyncRunResult.EncryptionKeyUnavailable
         return ActualBudgetDatabase.open(files.databaseFile(budgetId)).use { database ->
             val server = ActualServerClient()
-            val client = ActualSyncClient(serverUrl, token, server, database, fileId, groupId,
-                loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) })
-            var outcome = client.sync()
+            fun syncAt(url: String) = ActualSyncClient(url, token, server, database, fileId, groupId,
+                loadedKey?.keyId, loadedKey?.let { ActualMessageCipher(it.key) }).sync()
+            var outcome = try { syncAt(serverUrl) } catch (primary: Exception) {
+                fallbackUrl?.let(::syncAt) ?: throw primary
+            }
             val poster = SchedulePoster(app, database, ActualTransactionWriter(database), ActualScheduleWriter(database))
             val posted = poster.runIfNeeded(budgetId)
-            if (posted > 0) outcome = client.sync()
+            if (posted > 0) outcome = try { syncAt(serverUrl) } catch (primary: Exception) {
+                fallbackUrl?.let(::syncAt) ?: throw primary
+            }
             if (makeBackup) runCatching { BackupService(app, files).makeBackup(budgetId) }
             SyncRunResult.Success(outcome, posted)
         }

@@ -17,14 +17,24 @@ class CredentialStore(context: Context) {
         get() = preferences.getString("server_url", "").orEmpty()
         private set(value) { preferences.edit().putString("server_url", value).apply() }
 
-    fun saveConnection(url: String, token: String) {
+    var fallbackServerUrl: String
+        get() = preferences.getString("fallback_server_url", "").orEmpty()
+        private set(value) { preferences.edit().putString("fallback_server_url", value).apply() }
+
+    fun saveConnection(url: String, token: String, fallbackUrl: String = "") {
         val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, secretKey()) }
         val encrypted = cipher.doFinal(token.toByteArray())
         preferences.edit()
             .putString("server_url", url)
+            .putString("fallback_server_url", fallbackUrl)
             .putString("token", Base64.encodeToString(encrypted, Base64.NO_WRAP))
             .putString("token_iv", Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
             .apply()
+    }
+
+    fun updateServerUrls(url: String, fallbackUrl: String) {
+        preferences.edit().putString("server_url", url)
+            .putString("fallback_server_url", fallbackUrl).apply()
     }
 
     fun token(): String? = runCatching {

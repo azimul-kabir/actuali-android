@@ -14,6 +14,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Added a tappable Budget month label with a Material month-and-year selector
 - Ported Actuali's rule manager with searchable summaries, stage ordering, all/any conditions, typed values, entity pickers, and editable actions
 - Added Actual-compatible CRDT rule creation, updates, deletion, schedule-owned rule protection, and native transaction execution
+- Added editable primary and fallback Actual server URLs without disconnecting or replacing downloaded budgets, with automatic failover during connection and sync
 - Renamed the independent Android client from Actuali for Android to Actua
 - Changed the application ID and Kotlin namespace from `com.azimulkabir.actuali`
   to `com.azimulkabir.actua`

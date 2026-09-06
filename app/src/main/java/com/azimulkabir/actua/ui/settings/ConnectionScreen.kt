@@ -77,6 +77,9 @@ fun ConnectionScreen(
     val backupService = remember { BackupService(context, files) }
     val scope = rememberCoroutineScope()
     var serverUrl by remember { mutableStateOf(credentials.serverUrl) }
+    var fallbackServerUrl by remember { mutableStateOf(credentials.fallbackServerUrl) }
+    var activeServerUrl by remember { mutableStateOf(credentials.serverUrl) }
+    var editingConnection by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var connected by remember { mutableStateOf(credentials.token() != null) }
@@ -103,8 +106,15 @@ fun ConnectionScreen(
         val token = credentials.token() ?: return
         loading = true
         scope.launch {
-            runCatching { withContext(Dispatchers.IO) { client.listFiles(serverUrl, token) } }
-                .onSuccess { remoteBudgets = it; message = if (it.isEmpty()) "No budgets found." else null }
+            runCatching { withContext(Dispatchers.IO) {
+                runCatching { serverUrl to client.listFiles(serverUrl, token) }.getOrElse { primary ->
+                    val fallback = fallbackServerUrl.takeIf { it.isNotBlank() && it != serverUrl } ?: throw primary
+                    fallback to client.listFiles(fallback, token)
+                }
+            } }.onSuccess { (usedUrl, budgets) ->
+                activeServerUrl = usedUrl; remoteBudgets = budgets
+                message = if (budgets.isEmpty()) "No budgets found." else null
+            }
                 .onFailure { message = it.message ?: "Could not load budgets." }
             loading = false
         }
@@ -117,11 +127,17 @@ fun ConnectionScreen(
             runCatching {
                 withContext(Dispatchers.IO) {
                     val normalized = client.normalizeServerUrl(serverUrl)
-                    normalized to client.login(normalized, password)
+                    val fallback = fallbackServerUrl.trim().takeIf(String::isNotEmpty)?.let(client::normalizeServerUrl).orEmpty()
+                    runCatching { Triple(normalized, fallback, client.login(normalized, password)) }.getOrElse { primary ->
+                        if (fallback.isEmpty() || fallback == normalized) throw primary
+                        Triple(normalized, fallback, client.login(fallback, password))
+                    }
                 }
-            }.onSuccess { (url, token) ->
-                credentials.saveConnection(url, token)
+            }.onSuccess { (url, fallback, token) ->
+                credentials.saveConnection(url, token, fallback)
                 serverUrl = url
+                fallbackServerUrl = fallback
+                activeServerUrl = url
                 password = ""
                 connected = true
                 message = "Connected"
@@ -196,11 +212,22 @@ fun ConnectionScreen(
         }
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("Connection", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Connection", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f))
+                if (connected && !editingConnection) TextButton(onClick = { editingConnection = true }) { Text("Edit") }
+            }
             OutlinedTextField(
                 value = serverUrl, onValueChange = { serverUrl = it }, label = { Text("Server URL") },
                 placeholder = { Text("https://actual.example.com") }, singleLine = true,
-                enabled = !connected && !loading, modifier = Modifier.fillMaxWidth(),
+                enabled = (!connected || editingConnection) && !loading, modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            )
+            OutlinedTextField(
+                value = fallbackServerUrl, onValueChange = { fallbackServerUrl = it },
+                label = { Text("Fallback server URL (optional)") },
+                placeholder = { Text("https://actual-local.example.com") }, singleLine = true,
+                enabled = (!connected || editingConnection) && !loading, modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
             )
             if (!connected) {
@@ -235,6 +262,29 @@ fun ConnectionScreen(
                 }
             } else {
                 Text("● Connected", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                if (editingConnection) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(onClick = {
+                        serverUrl = credentials.serverUrl
+                        fallbackServerUrl = credentials.fallbackServerUrl
+                        editingConnection = false
+                    }, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                    Button(onClick = {
+                        loading = true; message = null
+                        scope.launch {
+                            runCatching { withContext(Dispatchers.IO) {
+                                val primary = client.normalizeServerUrl(serverUrl)
+                                val fallback = fallbackServerUrl.trim().takeIf(String::isNotEmpty)?.let(client::normalizeServerUrl).orEmpty()
+                                client.loginMethods(primary)
+                                primary to fallback
+                            } }.onSuccess { (primary, fallback) ->
+                                credentials.updateServerUrls(primary, fallback)
+                                serverUrl = primary; fallbackServerUrl = fallback; activeServerUrl = primary
+                                editingConnection = false; message = "Server addresses updated. Downloaded budgets were kept."
+                            }.onFailure { message = it.message ?: "Could not reach the new primary server." }
+                            loading = false
+                        }
+                    }, enabled = serverUrl.isNotBlank() && !loading, modifier = Modifier.weight(1f)) { Text("Save") }
+                }
                 OutlinedButton(onClick = {
                     credentials.clear()
                     connected = false
@@ -326,10 +376,10 @@ fun ConnectionScreen(
                                         withContext(Dispatchers.IO) {
                                             if (remote.encryptedKeyId != null) {
                                                 if (encryptionPassword.isNotBlank()) {
-                                                    downloader.unlock(serverUrl, token, remote.fileId, encryptionPassword)
+                                                    downloader.unlock(activeServerUrl, token, remote.fileId, encryptionPassword)
                                                 }
                                             }
-                                            downloader.download(serverUrl, token, remote)
+                                            downloader.download(activeServerUrl, token, remote)
                                         }
                                     }.onSuccess { metadata ->
                                         activeBudget.budgetId = metadata.id
