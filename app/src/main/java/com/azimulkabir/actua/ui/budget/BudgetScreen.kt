@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -47,6 +48,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.Role
@@ -129,10 +132,20 @@ fun BudgetScreen(
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
 ) {
+    val context = LocalContext.current
+    val budgetUiPreferences = remember(context) {
+        context.applicationContext.getSharedPreferences("budget_ui_preferences", android.content.Context.MODE_PRIVATE)
+    }
     var selectedCategory by remember { mutableStateOf<BudgetCategory?>(null) }
     var selectedGroup by remember { mutableStateOf<BudgetGroup?>(null) }
     var showAddSheet by remember { mutableStateOf(false) }
-    var collapsedGroups by remember { mutableStateOf(emptySet<String>()) }
+    var collapsedGroups by remember {
+        mutableStateOf(budgetUiPreferences.getStringSet("collapsed_groups", emptySet()).orEmpty().toSet())
+    }
+    fun saveCollapsedGroups(value: Set<String>) {
+        collapsedGroups = value
+        budgetUiPreferences.edit().putStringSet("collapsed_groups", value).apply()
+    }
     var optionsExpanded by remember { mutableStateOf(false) }
     var editingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var renamingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
@@ -162,11 +175,11 @@ fun BudgetScreen(
             onHideFullySpentChange = onHideFullySpentChange,
             onShowHiddenChange = onShowHiddenChange,
             onExpandAll = {
-                collapsedGroups = emptySet()
+                saveCollapsedGroups(emptySet())
                 optionsExpanded = false
             },
             onCollapseAll = {
-                collapsedGroups = groups.mapTo(mutableSetOf()) { it.name }
+                saveCollapsedGroups(groups.mapTo(mutableSetOf()) { it.name })
                 optionsExpanded = false
             },
         )
@@ -189,11 +202,11 @@ fun BudgetScreen(
                         showTotals = showGroupTotals,
                         hideDecimalPlaces = hideDecimalPlaces,
                         onClick = {
-                            collapsedGroups = if (collapsed) {
+                            saveCollapsedGroups(if (collapsed) {
                                 collapsedGroups - group.name
                             } else {
                                 collapsedGroups + group.name
-                            }
+                            })
                         },
                         onLongClick = { selectedGroup = group },
                     )
@@ -712,6 +725,7 @@ private fun CategoryDetailsSheet(
     onAssign: (Long) -> Unit,
 ) {
     var note by remember(category) { mutableStateOf(category.note) }
+    var noteEditorOpen by remember(category) { mutableStateOf(false) }
     var rollover by remember(category) { mutableStateOf(category.carryoverEnabled) }
     val suggestions = remember(category) {
         buildList {
@@ -736,9 +750,22 @@ private fun CategoryDetailsSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(formatMonth(month), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            OutlinedTextField(note, { note = it }, label = { Text("Category note") }, minLines = 3,
-                modifier = Modifier.fillMaxWidth())
-            Button(onClick = { onSaveNote(note) }, modifier = Modifier.fillMaxWidth()) { Text("Save note") }
+            Text("Note", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            Surface(
+                onClick = { noteEditorOpen = true },
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Text(
+                    text = note.ifBlank { "Add note" },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (note.isBlank()) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface,
+                    maxLines = if (note.isBlank()) 1 else 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Rollover overspending", fontWeight = FontWeight.SemiBold)
@@ -762,6 +789,33 @@ private fun CategoryDetailsSheet(
             }
             Spacer(Modifier.height(20.dp))
         }
+    }
+    if (noteEditorOpen) {
+        var noteDraft by remember(category, noteEditorOpen) { mutableStateOf(note) }
+        AlertDialog(
+            onDismissRequest = { noteEditorOpen = false },
+            title = { Text(if (note.isBlank()) "Add note" else "Edit note") },
+            text = {
+                OutlinedTextField(
+                    value = noteDraft,
+                    onValueChange = { noteDraft = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 8,
+                    placeholder = { Text("Category note") },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    note = noteDraft
+                    onSaveNote(noteDraft)
+                    noteEditorOpen = false
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { noteEditorOpen = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 

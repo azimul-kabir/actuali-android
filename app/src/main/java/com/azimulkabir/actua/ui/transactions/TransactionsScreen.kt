@@ -20,7 +20,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +32,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -45,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.rotate
@@ -144,8 +146,8 @@ fun TransactionsScreen(
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             account?.let { selectedAccount ->
                 item("account-details") {
-                    AccountDetails(selectedAccount, creditCard, accountNote, { accountNote = it },
-                        { onSaveAccountNote(accountNote) }, hideDecimalPlaces)
+                    AccountDetails(selectedAccount, creditCard, accountNote,
+                        { savedNote -> accountNote = savedNote; onSaveAccountNote(savedNote) }, hideDecimalPlaces)
                 }
             }
             item("transaction-total") {
@@ -198,8 +200,20 @@ fun TransactionsScreen(
 
 @Composable
 private fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
-    onNoteChange: (String) -> Unit, onSaveNote: () -> Unit, hideDecimals: Boolean) {
-    var balanceExpanded by remember(account.id) { mutableStateOf(true) }
+    onSaveNote: (String) -> Unit, hideDecimals: Boolean) {
+    val context = LocalContext.current
+    val detailPreferences = remember(context) {
+        context.applicationContext.getSharedPreferences("account_detail_preferences", android.content.Context.MODE_PRIVATE)
+    }
+    var balanceExpanded by remember(account.id) {
+        mutableStateOf(detailPreferences.getBoolean("balance_expanded_${account.id}", true))
+    }
+    var noteEditorOpen by remember(account.id) { mutableStateOf(false) }
+    var noteDraft by remember(account.id, noteEditorOpen) { mutableStateOf(note) }
+    val toggleBalance = {
+        balanceExpanded = !balanceExpanded
+        detailPreferences.edit().putBoolean("balance_expanded_${account.id}", balanceExpanded).apply()
+    }
     val balanceArrowRotation by animateFloatAsState(
         targetValue = if (balanceExpanded) 180f else 0f,
         animationSpec = tween(250),
@@ -208,12 +222,17 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Surface(
-            onClick = { balanceExpanded = !balanceExpanded },
+            onClick = toggleBalance,
             color = MaterialTheme.colorScheme.surfaceContainer,
             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
         ) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.ExpandMore,
+                        contentDescription = if (balanceExpanded) "Collapse balance details" else "Expand balance details",
+                        modifier = Modifier.padding(end = 8.dp).size(20.dp).rotate(balanceArrowRotation),
+                    )
                     Text(
                         "Working balance",
                         modifier = Modifier.weight(1f),
@@ -224,11 +243,6 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
                         formatMoneyCents(account.balanceCents, hideDecimals),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                    )
-                    Icon(
-                        Icons.Outlined.ExpandMore,
-                        contentDescription = if (balanceExpanded) "Collapse balance details" else "Expand balance details",
-                        modifier = Modifier.padding(start = 8.dp).size(20.dp).rotate(balanceArrowRotation),
                     )
                 }
                 AnimatedVisibility(
@@ -257,11 +271,47 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
                 }
             }
         }
-        Text("Account note", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-        OutlinedTextField(note, onNoteChange, modifier = Modifier.fillMaxWidth(), minLines = 2,
-            textStyle = MaterialTheme.typography.bodyMedium,
-            placeholder = { Text("Add note", style = MaterialTheme.typography.bodyMedium) })
-        Button(onClick = onSaveNote, modifier = Modifier.fillMaxWidth()) { Text("Save note") }
+        Text("Note", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        Surface(
+            onClick = { noteEditorOpen = true },
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        ) {
+            Text(
+                text = note.ifBlank { "Add note" },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (note.isBlank()) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface,
+                maxLines = if (note.isBlank()) 1 else 4,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+    if (noteEditorOpen) {
+        AlertDialog(
+            onDismissRequest = { noteEditorOpen = false },
+            title = { Text(if (note.isBlank()) "Add note" else "Edit note") },
+            text = {
+                OutlinedTextField(
+                    value = noteDraft,
+                    onValueChange = { noteDraft = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 8,
+                    placeholder = { Text("Account note") },
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onSaveNote(noteDraft)
+                    noteEditorOpen = false
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { noteEditorOpen = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 
