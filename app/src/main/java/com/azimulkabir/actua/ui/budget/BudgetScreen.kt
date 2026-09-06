@@ -618,7 +618,7 @@ private fun PlanBudgetCategoryRow(
     Column(
         modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow)
             .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -629,7 +629,7 @@ private fun PlanBudgetCategoryRow(
                 modifier = Modifier.weight(1f),
             )
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = when {
                     category.balanceCents < 0 -> MaterialTheme.colorScheme.errorContainer
                     category.balanceCents > 0 -> MaterialTheme.colorScheme.primaryContainer
