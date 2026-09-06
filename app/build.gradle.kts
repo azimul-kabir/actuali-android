@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.azimulkabir.actuali"
     compileSdk {
-        version = release(37)
+        version = preview("CinnamonBun")
     }
 
     defaultConfig {
