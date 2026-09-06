@@ -27,10 +27,10 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: android-actions/setup-android@v3
-      - name: Install Android 17 compile SDK
+      - name: Install Android 17 preview SDK
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager --channel=3 'platforms;android-37'
+          sdkmanager --channel=3 'platforms;android-CinnamonBun'
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
