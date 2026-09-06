@@ -76,13 +76,20 @@ class ActuaRepository(context: Context) {
         val db = actualDatabase ?: return RuleEditorData()
         val groups = db.fetchCategoryGroups()
         val allAccounts = db.fetchAccounts()
-        val allPayees = db.fetchPayees().filter { it.transferAccountId == null && it.name != "Unknown" }
+        val allPayees = db.fetchPayees()
         val allCategories = groups.flatMap { it.categories }
-        val allNames = (allAccounts.map { it.id to it.name } + allPayees.map { it.id to it.name } +
+        val accountNames = allAccounts.associate { it.id to it.name }
+        val allNames = (allAccounts.map { it.id to it.name } + allPayees.map { payee ->
+            val name = payee.name.takeIf { it.isNotBlank() }
+                ?: payee.transferAccountId?.let(accountNames::get)?.let { "Transfer: $it" }
+                ?: "Unknown payee"
+            payee.id to name
+        } +
             allCategories.map { it.id to it.name } + groups.map { it.id to it.name }).toMap()
         return RuleEditorData(
             accounts = allAccounts.filterNot { it.closed }.map { RuleChoice(it.id, it.name) },
-            payees = allPayees.map { RuleChoice(it.id, it.name) },
+            payees = allPayees.filter { it.transferAccountId == null && it.name.isNotBlank() && it.name != "Unknown" }
+                .map { RuleChoice(it.id, it.name) },
             categories = groups.filterNot { it.hidden }.flatMap { it.categories }.filterNot { it.hidden }
                 .map { RuleChoice(it.id, it.name) },
             categoryGroups = groups.filterNot { it.hidden }.map { RuleChoice(it.id, it.name) },
