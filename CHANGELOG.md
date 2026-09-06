@@ -12,6 +12,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Remembered collapsed account summaries and Budget category groups across navigation and app restarts
 - Replaced always-open account and category note forms with compact tappable note rows and focused editors
 - Added a tappable Budget month label with a Material month-and-year selector
+- Ported Actuali's rule manager with searchable summaries, stage ordering, all/any conditions, typed values, entity pickers, and editable actions
+- Added Actual-compatible CRDT rule creation, updates, deletion, schedule-owned rule protection, and native transaction execution
 - Renamed the independent Android client from Actuali for Android to Actua
 - Changed the application ID and Kotlin namespace from `com.azimulkabir.actuali`
   to `com.azimulkabir.actua`
@@ -87,7 +89,7 @@ Initial public testing release.
 
 - This build is alpha software and should be used with tested backups
 - The APK is debug-signed for sideload testing, not Play Store distribution
-- OpenID Connect, custom proxy headers, advanced dashboards, bank-feed setup, rule editing, and schedule-management UI are not yet included
+- OpenID Connect, custom proxy headers, advanced dashboards, bank-feed setup, and schedule-management UI are not yet included
 - Some advanced entity merge, reorder, template, goal, and automation workflows remain incomplete
 - Apple-only features from the iOS project are intentionally excluded
 

@@ -187,6 +187,20 @@ class ActualBudgetDatabase private constructor(
     }
 
     @Synchronized
+    fun rulesSupported(): Boolean = hasTable("rules")
+
+    @Synchronized
+    fun scheduleOwnedRuleIds(): Set<String> {
+        if (!hasTable("schedules")) return emptySet()
+        val result = mutableSetOf<String>()
+        database.rawQuery(
+            """SELECT rule FROM schedules WHERE rule IS NOT NULL
+                AND (tombstone = 0 OR tombstone IS NULL)""", null,
+        ).use { cursor -> while (cursor.moveToNext()) cursor.stringOrNull(0)?.let(result::add) }
+        return result
+    }
+
+    @Synchronized
     fun ruleContext(): RuleContext {
         val accounts = fetchAccounts()
         val groups = fetchCategoryGroups()

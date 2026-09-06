@@ -35,7 +35,7 @@ by either the Actuali project or the Actual Budget team.
 - Calculator-style and conventional amount entry
 - Account, category, and group creation plus working contextual actions
 - Local backup, restore, retention, and pre-restore revert
-- Actual rules and scheduled-transaction backend processing
+- Actual-compatible rules management, editing, CRDT sync, and transaction processing
 - Category notes, rollover overspending, and history-based quick assign
 - Credit-card limits, billing-cycle metadata, due dates, and cycle spending stored through Actual preferences
 - Reports, display currency, decimal, appearance, start-page, and privacy preferences

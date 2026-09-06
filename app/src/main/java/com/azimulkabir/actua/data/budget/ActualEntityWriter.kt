@@ -6,6 +6,7 @@ import com.azimulkabir.actua.data.sync.HlcTimestamp
 import com.azimulkabir.actua.data.sync.HybridLogicalClock
 import com.azimulkabir.actua.data.schedules.DayDate
 import java.util.UUID
+import com.azimulkabir.actua.data.rules.Rule
 
 /** CRDT mutation path shared by account/category/group/payee menu actions. */
 class ActualEntityWriter(
@@ -46,6 +47,14 @@ class ActualEntityWriter(
     fun deletePayee(id: String) = update("payees", id, mapOf("tombstone" to 1))
     fun setPreference(id: String, value: String?) = update("preferences", id, mapOf("value" to value))
     fun setNote(id: String, note: String) = update("notes", id, mapOf("note" to note))
+    fun saveRule(rule: Rule) = update("rules", rule.id, mapOf(
+        "stage" to rule.storedStage,
+        "conditions_op" to rule.conditionsOp.name.lowercase(),
+        "conditions" to rule.conditionsJson,
+        "actions" to rule.actionsJson,
+        "tombstone" to 0,
+    ))
+    fun deleteRule(id: String) = update("rules", id, mapOf("tombstone" to 1))
 
     /** PWA/iOS local-account shape: account + transfer payee + optional opening transaction. */
     @Synchronized
@@ -124,6 +133,7 @@ class ActualEntityWriter(
             "payees" to setOf("name", "tombstone"),
             "preferences" to setOf("value"),
             "notes" to setOf("note"),
+            "rules" to setOf("stage", "conditions_op", "conditions", "actions", "tombstone"),
         )
     }
 }

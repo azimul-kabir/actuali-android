@@ -51,6 +51,7 @@ fun SettingsScreen(
     showAccountsMonthlySummary: Boolean = true,
     onShowAccountsMonthlySummaryChange: (Boolean) -> Unit = {},
     onCreditCardsClick: () -> Unit = {},
+    onRulesClick: () -> Unit = {},
     conventionalAmountEntry: Boolean = false,
     onConventionalAmountEntryChange: (Boolean) -> Unit = {},
 ) {
@@ -77,6 +78,7 @@ fun SettingsScreen(
             onShowAccountsMonthlySummaryChange,
         )
         SettingsRow("Credit Cards & Billing Cycles", "Cycle spend, due dates and credit limits", true, onCreditCardsClick)
+        SettingsRow("Rules", "Automatically categorize and transform transactions", true, onRulesClick)
         SettingsSection("Display")
         SettingsChoice("Currency", currencyLabel(currencyCode), currencyOptions.map { it.first }) { selected ->
             onCurrencyCodeChange(currencyOptions.first { it.first == selected }.second)

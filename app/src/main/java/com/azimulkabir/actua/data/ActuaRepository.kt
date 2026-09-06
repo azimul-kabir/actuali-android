@@ -27,6 +27,9 @@ import com.azimulkabir.actua.model.CreditCardCycle
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.data.sync.ActualSyncScheduler
 import org.json.JSONObject
+import com.azimulkabir.actua.data.rules.Rule
+import com.azimulkabir.actua.data.rules.RuleChoice
+import com.azimulkabir.actua.data.rules.RuleEditorData
 
 class ActuaRepository(context: Context) {
     private val appContext = context.applicationContext
@@ -62,6 +65,44 @@ class ActuaRepository(context: Context) {
         ?.filter { it.transferAccountId == null && it.name != "Unknown" }
         ?.map { it.name }
         ?: emptyList()
+
+    fun rules(): List<Rule> = actualDatabase?.fetchRules().orEmpty()
+
+    fun rulesSupported(): Boolean = actualDatabase?.rulesSupported() == true
+
+    fun scheduleOwnedRuleIds(): Set<String> = actualDatabase?.scheduleOwnedRuleIds().orEmpty()
+
+    fun ruleEditorData(): RuleEditorData {
+        val db = actualDatabase ?: return RuleEditorData()
+        val groups = db.fetchCategoryGroups()
+        val allAccounts = db.fetchAccounts()
+        val allPayees = db.fetchPayees().filter { it.transferAccountId == null && it.name != "Unknown" }
+        val allCategories = groups.flatMap { it.categories }
+        val allNames = (allAccounts.map { it.id to it.name } + allPayees.map { it.id to it.name } +
+            allCategories.map { it.id to it.name } + groups.map { it.id to it.name }).toMap()
+        return RuleEditorData(
+            accounts = allAccounts.filterNot { it.closed }.map { RuleChoice(it.id, it.name) },
+            payees = allPayees.map { RuleChoice(it.id, it.name) },
+            categories = groups.filterNot { it.hidden }.flatMap { it.categories }.filterNot { it.hidden }
+                .map { RuleChoice(it.id, it.name) },
+            categoryGroups = groups.filterNot { it.hidden }.map { RuleChoice(it.id, it.name) },
+            names = allNames,
+        )
+    }
+
+    fun saveRule(rule: Rule): Boolean {
+        require(rule.conditions.isNotEmpty()) { "Add at least one condition" }
+        require(rule.actions.isNotEmpty()) { "Add at least one action" }
+        actualEntities?.saveRule(rule) ?: return false
+        return true
+    }
+
+    fun deleteRule(ruleId: String): Boolean {
+        val db = actualDatabase ?: return false
+        require(ruleId !in db.scheduleOwnedRuleIds()) { "This rule belongs to a schedule" }
+        actualEntities!!.deleteRule(ruleId)
+        return true
+    }
 
     fun budgetGroups(month: String = currentMonth()): List<BudgetGroup> {
         actualDatabase?.let { db ->

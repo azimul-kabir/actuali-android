@@ -48,6 +48,7 @@ import com.azimulkabir.actua.ui.budget.BudgetScreen
 import com.azimulkabir.actua.ui.settings.SettingsScreen
 import com.azimulkabir.actua.ui.settings.ConnectionScreen
 import com.azimulkabir.actua.ui.settings.CreditCardsScreen
+import com.azimulkabir.actua.ui.settings.RulesScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
@@ -70,7 +71,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Connection, CreditCards }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Connection, CreditCards, Rules }
 
 @Composable
 fun AppNavigation(
@@ -94,6 +95,10 @@ fun AppNavigation(
     val payeeNames = remember(dataVersion) { repository.payeeNames() }
     val reportSnapshot = remember(dataVersion) { repository.reports() }
     val creditCards = remember(dataVersion) { repository.creditCards() }
+    val rules = remember(dataVersion) { repository.rules() }
+    val rulesSupported = remember(dataVersion) { repository.rulesSupported() }
+    val scheduleOwnedRuleIds = remember(dataVersion) { repository.scheduleOwnedRuleIds() }
+    val ruleEditorData = remember(dataVersion) { repository.ruleEditorData() }
     var destination by rememberSaveable {
         mutableStateOf(MainDestination.entries.firstOrNull { it.label == displayPreferences.startPage }
             ?: MainDestination.Accounts)
@@ -295,6 +300,16 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
             )
+            DetailDestination.Rules -> RulesScreen(
+                rules = rules,
+                supported = rulesSupported,
+                scheduleOwnedRuleIds = scheduleOwnedRuleIds,
+                editorData = ruleEditorData,
+                onBack = { detail = DetailDestination.Main },
+                onSave = { rule -> mutate("Saving rule") { repository.saveRule(rule) } },
+                onDelete = { ruleId -> mutate("Deleting rule") { repository.deleteRule(ruleId) } },
+                modifier = contentModifier,
+            )
             DetailDestination.Main -> if (!repository.isUsingActualBudget && destination != MainDestination.More) {
                 NoBudgetScreen(contentModifier) {
                     destination = MainDestination.More
@@ -463,6 +478,7 @@ fun AppNavigation(
                         showAccountsMonthlySummary = it
                     },
                     onCreditCardsClick = { detail = DetailDestination.CreditCards },
+                    onRulesClick = { detail = DetailDestination.Rules },
                     conventionalAmountEntry = conventionalAmountEntry,
                     onConventionalAmountEntryChange = {
                         displayPreferences.conventionalAmountEntry = it
