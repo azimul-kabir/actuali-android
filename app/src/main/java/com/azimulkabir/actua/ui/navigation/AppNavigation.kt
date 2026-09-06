@@ -273,7 +273,7 @@ fun AppNavigation(
                 modifier = contentModifier,
                     accountOptions = accounts.filter { !it.closed }.map { it.name },
                     categoryOptions = categoryNames,
-                    payeeOptions = payeeNames,
+                    payeeOptions = (payeeNames + accounts.filterNot { it.closed }.map { "Transfer: ${it.name}" }).distinct(),
                     defaultAccount = defaultAccount,
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,

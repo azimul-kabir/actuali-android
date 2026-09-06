@@ -161,6 +161,18 @@ fun AddTransactionScreen(
                 PickerTextField(
                     label = "Payee", value = payee, options = payeeOptions,
                     onValueChange = { value ->
+                        val transferTarget = value.takeIf { it.startsWith("Transfer: ") }
+                            ?.removePrefix("Transfer: ")?.takeIf(accountOptions::contains)
+                        if (transferTarget != null) {
+                            if (transferTarget != account) {
+                                payee = ""
+                                transferAccount = transferTarget
+                                transactionType = Type.TRANSFER.displayName
+                                category = ""
+                                splitLines = emptyList()
+                            }
+                            return@PickerTextField
+                        }
                         payee = value
                         onResolveRuleCategory(
                             Transaction(
@@ -179,7 +191,17 @@ fun AddTransactionScreen(
                     }, editable = true,
                 )
             }
-            if (!isSplit) {
+            if (transactionType == Type.TRANSFER.displayName) {
+                OutlinedTextField(
+                    value = "Transfer",
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text("Category") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            } else if (!isSplit) {
                 PickerTextField(
                     label = "Category", value = category, options = categoryOptions,
                     onValueChange = { category = it }, editable = true,
