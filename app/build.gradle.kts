@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.azimulkabir.actuali"
+    namespace = "com.azimulkabir.actua"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.azimulkabir.actuali"
+        applicationId = "com.azimulkabir.actua"
         minSdk = 28
         targetSdk = 37
         versionCode = 3

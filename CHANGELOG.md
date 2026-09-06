@@ -1,8 +1,23 @@
 # Changelog
 
-All notable user-facing changes to Actuali for Android are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
+All notable user-facing changes to Actua are recorded here. This project uses [Semantic Versioning](https://semver.org/) where practical. Versions marked `alpha` are testing builds and may contain incomplete workflows or require a clean reinstall before a future production release.
 
 ## Unreleased
+
+### Changed
+
+- Renamed the independent Android client from Actuali for Android to Actua
+- Changed the application ID and Kotlin namespace from `com.azimulkabir.actuali`
+  to `com.azimulkabir.actua`
+- Added an original Material You-ready adaptive launcher icon with a monochrome
+  themed-icon layer
+- Updated project documentation while preserving credit to Actuali for iOS and
+  Actual Budget
+
+### Migration
+
+- Android treats Actua as a separate app from earlier Actuali for Android alpha
+  builds. Synchronize and back up local changes before removing an older build.
 
 ## [0.1.0-alpha.3] - 2026-09-06
 

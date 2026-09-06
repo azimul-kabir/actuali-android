@@ -1,4 +1,4 @@
-# Actuali Android backend parity
+# Actua backend parity
 
 The original [Actuali for iOS project by Matt Farrell](https://github.com/MattFaz/actuali)
 is the upstream behavioral reference for this independent Android port. A local

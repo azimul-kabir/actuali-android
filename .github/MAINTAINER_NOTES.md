@@ -1,7 +1,7 @@
 # Community setup
 
 Issue forms, the PR template and AGENTS.md are adapted from
-[MattFaz/actuali](https://github.com/MattFaz/actuali) for this Android port.
+[MattFaz/actuali](https://github.com/MattFaz/actuali) for Actua.
 Merge this branch into `main` to make the issue chooser and privileged review
 workflow available. Ensure the `bug` and `enhancement` labels exist.
 

@@ -1,18 +1,25 @@
 <div align="center">
 
-# Actuali for Android
+# Actua
 
-**An independent Android port of [Actuali](https://github.com/MattFaz/actuali), the native companion app for [Actual Budget](https://actualbudget.org/).**
+**A native Android client for [Actual Budget](https://actualbudget.org/), built with Kotlin and Jetpack Compose.**
 
 </div>
 
 ## About this project
 
-This repository brings Actuali's core budgeting experience and Actual-compatible backend behavior to Android. It is maintained separately and is not an official Android release of the original iOS project.
+Actua is an independent, community-maintained Android project. Its development
+was originally based on and informed by [Matt Farrell's open-source Actuali
+project for iOS](https://github.com/MattFaz/actuali), whose tested behavior and
+implementation remain important references.
 
-Actuali for Android connects directly to a self-hosted Actual server. Budgets are downloaded to local SQLite storage, remain usable offline, and synchronize through Actual's encrypted CRDT protocol. There is no intermediary account or service operated by this app.
+Actua connects directly to a self-hosted Actual server. Budgets are downloaded
+to local SQLite storage, remain usable offline, and synchronize through Actual's
+encrypted CRDT protocol. There is no intermediary account or service operated
+by this app.
 
-This is an unofficial community project. It is not affiliated with or endorsed by the original Actuali iOS project or the Actual Budget team.
+Actua is not an official release of, affiliated with, endorsed by, or supported
+by either the Actuali project or the Actual Budget team.
 
 ## Current functionality
 
@@ -36,7 +43,11 @@ See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and d
 
 ## Scope
 
-The goal is behavioral compatibility with Actuali's portable budgeting features while retaining a native Android UI built with Jetpack Compose. Changes in the iOS project can be reviewed and ported over time, but this is a source-level reimplementation—not shared Swift code or a byte-for-byte conversion.
+The goal is behavioral compatibility with Actual Budget and with portable
+budgeting behavior proven by Actuali, while retaining a native Android UI built
+with Jetpack Compose. Changes in the iOS project can be reviewed and ported over
+time, but this is a source-level reimplementation—not shared Swift code or a
+byte-for-byte conversion.
 
 Apple-platform integrations are deliberately excluded, including FinanceKit, Apple Wallet, Siri, App Intents, Shortcuts, iCloud, Keychain, and Apple background-task APIs. Android equivalents are used only where they serve the core budgeting workflow, such as Android Keystore and WorkManager.
 
@@ -48,7 +59,11 @@ Apple-platform integrations are deliberately excluded, including FinanceKit, App
 
 ## Testing releases
 
-Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actuali-android/releases). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actuali.
+Testing APKs are published on the [GitHub Releases page](https://github.com/azimul-kabir/actuali-android/releases). Download the APK on an Android device, allow installation from the browser or file manager when prompted, and open Actua.
+
+Actua uses the application ID `com.azimulkabir.actua`. Android therefore treats
+it as a separate app from the earlier Actuali for Android alpha builds. Confirm
+that local changes are synchronized and backed up before removing an older build.
 
 Initial alpha builds are debug-signed and intended only for trusted testers. Android updates require matching signing keys, so a later production-signed build may require uninstalling the alpha build first. Back up local data before replacing or uninstalling any test build.
 
@@ -67,7 +82,7 @@ The app can then connect from **More → Connection & Data**. Use the complete s
 ```text
 Jetpack Compose UI
         ↓
-ActualiRepository
+ActuaRepository
         ↓
 Local SQLite database ← CRDT mutation writers
         ↕
@@ -78,11 +93,18 @@ Writes are applied locally and represented as Actual-compatible CRDT messages. W
 
 ## Upstream relationship and credits
 
-This Android port is based on **[Matt Farrell's Actuali for iOS](https://github.com/MattFaz/actuali)**, which is the upstream behavioral reference for this project. Its product design, tested behavior, Swift implementation, documentation, and sync work guide the port. Please use the original repository for the iPhone and iPad app and direct iOS-specific contributions and issues there. Copyright attribution from the upstream repository is preserved in this project's license.
+Actua began as an Android reimplementation based on **[Matt Farrell's Actuali
+for iOS](https://github.com/MattFaz/actuali)**. Its product design, tested
+behavior, Swift implementation, documentation, and sync work continue to guide
+portable behavior. Please use the original repository for the iPhone and iPad
+app and direct iOS-specific contributions and issues there. Copyright attribution
+from the upstream repository is preserved in this project's license.
 
 Actuali itself builds on **[Actual Budget](https://github.com/actualbudget/actual)**. Portions of the synchronization behavior derive from Actual Budget's MIT-licensed CRDT and loot-core implementations, originally copyrighted by James Long and subsequent contributors.
 
-The Actuali app icon was designed and contributed to the original project by **[u/bdownz](https://www.reddit.com/user/bdownz/)** and is reused here under the upstream project's license and attribution.
+The original Actuali icon was designed by
+**[u/bdownz](https://www.reddit.com/user/bdownz/)**. Actua uses a new,
+independently created adaptive icon and does not reuse that artwork.
 
 See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE) for complete attribution and license terms.
 
