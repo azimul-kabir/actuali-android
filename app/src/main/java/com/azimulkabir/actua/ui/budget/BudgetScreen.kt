@@ -158,6 +158,7 @@ fun BudgetScreen(
     var movingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var fundingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
+    var assignFromBudgetOpen by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
         BudgetToolbar(
@@ -190,8 +191,14 @@ fun BudgetScreen(
             },
         )
         AnimatedVisibility(visible = showOverview) {
-            if (budgetView == "Plan") PlanBudgetOverview(overview, hideDecimalPlaces)
-            else BudgetOverviewRow(overview, showSpent = showSpent, hideDecimalPlaces = hideDecimalPlaces)
+            if (budgetView == "Plan") PlanBudgetOverview(
+                overview, hideDecimalPlaces, onClick = { assignFromBudgetOpen = true },
+            ) else BudgetOverviewRow(
+                overview,
+                showSpent = showSpent,
+                hideDecimalPlaces = hideDecimalPlaces,
+                onToBudgetClick = { assignFromBudgetOpen = true },
+            )
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -358,6 +365,21 @@ fun BudgetScreen(
             onMoveMoney = {
                 fundingCategory = null
                 movingBudget = group to category
+            },
+        )
+    }
+    if (assignFromBudgetOpen) {
+        AssignBudgetSheet(
+            toBudgetCents = overview.toBudgetCents ?: 0L,
+            groups = groups,
+            onDismiss = { assignFromBudgetOpen = false },
+            onSave = { group, category, amount ->
+                if ((overview.toBudgetCents ?: 0L) < 0L) {
+                    onTransferBudget(group, category, null, null, amount)
+                } else {
+                    onTransferBudget(null, null, group, category, amount)
+                }
+                assignFromBudgetOpen = false
             },
         )
     }
@@ -555,8 +577,13 @@ private fun ToggleMenuItem(label: String, checked: Boolean, onChange: (Boolean) 
 }
 
 @Composable
-private fun PlanBudgetOverview(overview: BudgetOverview, hideDecimalPlaces: Boolean) {
+private fun PlanBudgetOverview(
+    overview: BudgetOverview,
+    hideDecimalPlaces: Boolean,
+    onClick: () -> Unit,
+) {
     Surface(
+        onClick = onClick,
         color = if ((overview.toBudgetCents ?: 0L) >= 0) MaterialTheme.colorScheme.primaryContainer
         else MaterialTheme.colorScheme.errorContainer,
         shape = RoundedCornerShape(28.dp),
@@ -782,7 +809,12 @@ private fun IncomeBudgetCategoryRow(
 }
 
 @Composable
-private fun BudgetOverviewRow(overview: BudgetOverview, showSpent: Boolean, hideDecimalPlaces: Boolean) {
+private fun BudgetOverviewRow(
+    overview: BudgetOverview,
+    showSpent: Boolean,
+    hideDecimalPlaces: Boolean,
+    onToBudgetClick: () -> Unit,
+) {
     Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 1.dp) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
@@ -791,7 +823,7 @@ private fun BudgetOverviewRow(overview: BudgetOverview, showSpent: Boolean, hide
             OverviewCell(
                 "To budget",
                 overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
-                Modifier.weight(1.35f),
+                Modifier.weight(1.35f).clickable(role = Role.Button, onClick = onToBudgetClick),
                 Alignment.Start,
                 positive = overview.toBudgetCents?.let { it > 0 } == true,
             )
@@ -1037,6 +1069,101 @@ private fun BalancePill(amount: Long, hideDecimalPlaces: Boolean) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun AssignBudgetSheet(
+    toBudgetCents: Long,
+    groups: List<BudgetGroup>,
+    onDismiss: () -> Unit,
+    onSave: (String, String, Long) -> Unit,
+) {
+    val options = remember(groups) {
+        groups.filterNot { it.isIncome }.flatMap { group ->
+            group.categories.filterNot { it.hidden }.map { group.name to it.name }
+        }
+    }
+    var selected by remember(options) { mutableStateOf(options.firstOrNull()) }
+    var expanded by remember { mutableStateOf(false) }
+    val calculator = remember(toBudgetCents) {
+        CalculatorAmountState(kotlin.math.abs(toBudgetCents), allowsNegative = false)
+    }
+    var revision by remember { mutableStateOf(0) }
+    val covering = toBudgetCents < 0L
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+            Text(
+                if (covering) "Cover To Budget" else "Assign to category",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                if (covering) "Choose a category to move money from"
+                else "Choose a category to fund from Ready to Assign",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+            )
+            Box(Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = { expanded = true },
+                    enabled = options.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(selected?.let { "${it.first} · ${it.second}" } ?: "No categories available")
+                }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    options.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text("${option.first} · ${option.second}") },
+                            onClick = { selected = option; expanded = false },
+                        )
+                    }
+                }
+            }
+            Text(
+                calculator.display,
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            )
+            listOf(
+                listOf("7", "8", "9", "÷"), listOf("4", "5", "6", "×"),
+                listOf("1", "2", "3", "−"), listOf("0", "⌫", "+"),
+            ).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { key ->
+                        Button(onClick = {
+                            when (key) {
+                                "⌫" -> calculator.backspace()
+                                "+" -> calculator.operator(CalculatorAmountState.Operator.ADD)
+                                "−" -> calculator.operator(CalculatorAmountState.Operator.SUBTRACT)
+                                "×" -> calculator.operator(CalculatorAmountState.Operator.MULTIPLY)
+                                "÷" -> calculator.operator(CalculatorAmountState.Operator.DIVIDE)
+                                else -> calculator.digit(key.toInt())
+                            }
+                            revision++
+                        }, modifier = Modifier.weight(1f)) { Text(key) }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                Button(
+                    onClick = {
+                        val target = selected ?: return@Button
+                        calculator.finish().takeIf { it > 0L }?.let { onSave(target.first, target.second, it) }
+                    },
+                    enabled = selected != null,
+                    modifier = Modifier.weight(1f),
+                ) { Text(if (covering) "Cover" else "Assign") }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+    @Suppress("UNUSED_EXPRESSION") revision
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun MoveBudgetSheet(
     sourceGroup: BudgetGroup,
     source: BudgetCategory,
@@ -1044,7 +1171,7 @@ private fun MoveBudgetSheet(
     onDismiss: () -> Unit,
     onSave: (String?, String?, Long) -> Unit,
 ) {
-    val options = listOf<Pair<String?, String?>>(null to null) + groups.flatMap { group ->
+    val options = listOf<Pair<String?, String?>>(null to null) + groups.filterNot { it.isIncome }.flatMap { group ->
         group.categories.filterNot { group.name == sourceGroup.name && it.name == source.name }.map { group.name to it.name }
     }
     var selected by remember(source) { mutableStateOf(options.first()) }
@@ -1057,10 +1184,12 @@ private fun MoveBudgetSheet(
                 style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Box(Modifier.fillMaxWidth()) {
                 Button(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(selected.second?.let { "${selected.first} · $it" } ?: "To Budget")
+                    Text(selected.second?.let { "${selected.first} · $it" }
+                        ?: if (source.available < 0) "From To Budget" else "To Budget")
                 }
                 DropdownMenu(expanded, { expanded = false }) { options.forEach { option ->
-                    DropdownMenuItem(text = { Text(option.second?.let { "${option.first} · $it" } ?: "To Budget") },
+                    DropdownMenuItem(text = { Text(option.second?.let { "${option.first} · $it" }
+                        ?: if (source.available < 0) "From To Budget" else "To Budget") },
                         onClick = { selected = option; expanded = false })
                 } }
             }
