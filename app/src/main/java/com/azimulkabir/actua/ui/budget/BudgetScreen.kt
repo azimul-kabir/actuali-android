@@ -156,6 +156,7 @@ fun BudgetScreen(
     var creatingCategory by remember { mutableStateOf(false) }
     var creatingGroup by remember { mutableStateOf(false) }
     var movingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
+    var fundingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -260,6 +261,8 @@ fun BudgetScreen(
                                 hideDecimalPlaces = hideDecimalPlaces,
                                 onClick = { categoryDetails = group to category },
                                 onLongClick = { selectedCategory = category },
+                                onAssignedClick = { fundingCategory = group to category },
+                                onSpentClick = { onShowCategoryTransactions(category.name, true) },
                             )
                         } else {
                             CategoryRow(
@@ -344,6 +347,20 @@ fun BudgetScreen(
             else onTransferBudget(group.name, category.name, targetGroup, targetCategory, amount)
             movingBudget = null
         }) }
+    fundingCategory?.let { (group, category) ->
+        FundingActionsSheet(
+            category = category,
+            onDismiss = { fundingCategory = null },
+            onEditAssigned = {
+                fundingCategory = null
+                editingBudget = group to category
+            },
+            onMoveMoney = {
+                fundingCategory = null
+                movingBudget = group to category
+            },
+        )
+    }
     categoryDetails?.let { (group, category) ->
         CategoryDetailsSheet(
             category = category,
@@ -610,6 +627,8 @@ private fun PlanBudgetCategoryRow(
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onAssignedClick: () -> Unit,
+    onSpentClick: () -> Unit,
 ) {
     if (showTopDivider) HorizontalDivider(
         modifier = Modifier.padding(start = 16.dp),
@@ -654,13 +673,31 @@ private fun PlanBudgetCategoryRow(
             else MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
         )
-        Text(
-            "Assigned ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)} · " +
+        Row(modifier = Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Assigned ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(
+                    role = Role.Button,
+                    onClick = onAssignedClick,
+                ).padding(vertical = 4.dp),
+            )
+            Text(
+                " · ",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
                 "Spent ${formatMoneyCents(category.spentCents, hideDecimalPlaces)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 6.dp),
-        )
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(
+                    role = Role.Button,
+                    onClick = onSpentClick,
+                ).padding(vertical = 4.dp),
+            )
+        }
     }
 }
 
@@ -1191,6 +1228,31 @@ private fun CategoryActionsSheet(
                 SheetAction(if (category.available < 0) "Cover overspending" else "Move money", onMoveMoney)
             }
             SheetAction(if (hidden) "Unhide category" else "Hide category", { onSetHidden(!hidden) }, destructive = !hidden)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FundingActionsSheet(
+    category: BudgetCategory,
+    onDismiss: () -> Unit,
+    onEditAssigned: () -> Unit,
+    onMoveMoney: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(bottom = 24.dp)) {
+            Text(
+                category.name,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+            )
+            SheetAction("Edit assigned amount", onEditAssigned)
+            SheetAction(
+                if (category.balanceCents < 0L) "Cover overspending" else "Move money",
+                onMoveMoney,
+            )
         }
     }
 }
