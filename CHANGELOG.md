@@ -4,6 +4,18 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [0.1.0-alpha.4] - 2026-09-07
+
+Fourth public testing release.
+
+### Added
+
+- Full-screen Material account, payee, and category selectors with immediate search, alphabetical sections, selected-item indicators, transfer-account grouping, new-payee creation, and account balances
+- A persistent availability-focused Plan budget view alongside the existing table view
+- Interactive Plan figures: Assigned opens assignment and money-moving actions, while Spent opens the category's transactions for the selected month
+- Ready to Assign and To Budget funding flows for assigning money to categories or covering a negative To Budget balance
+- Source of Fund/Income as the final Budget section, with Actual-backed received totals and income-safe actions
+
 ### Changed
 
 - Adopted the original Actua Fold A as a fully scalable SVG and native Android vector icon
@@ -23,6 +35,10 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
   themed-icon layer
 - Updated project documentation while preserving credit to Actuali for iOS and
   Actual Budget
+- Transaction notes now use a compact single-line field
+- Budget groups, categories, account sections, and account rows have clearer Material hierarchy
+- Availability pills in Plan view use tighter corners and aligned amount text
+- Saving or cancelling an edited transaction returns to its originating account
 
 ### Migration
 
@@ -104,3 +120,4 @@ Initial public testing release.
 [0.1.0-alpha.1]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.1
 [0.1.0-alpha.2]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.2
 [0.1.0-alpha.3]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.3
+[0.1.0-alpha.4]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.4

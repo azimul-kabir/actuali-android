@@ -28,10 +28,11 @@ by either the Actuali project or the Actual Budget team.
 - Password connection to an Actual server and budget download/selection
 - Offline local budget storage and encrypted CRDT synchronization
 - Automatic, foreground, post-mutation, and manual sync
-- Budget overview, category groups, monthly amounts, progress bars, and hide/show management
+- Budget table and availability-focused Plan views, category groups, Source of Fund/Income, monthly amounts, progress bars, and hide/show management
 - Account lists, working/cleared/uncleared/reconciled balances, notes, monthly summaries, and full transaction history
 - Expense, income, transfer, editable split, edit, clear, and delete transaction flows
-- Searchable account, payee, and category selection; new payee creation
+- Full-screen searchable account, payee, and category selection with account balances, transfer grouping, and new-payee creation
+- Ready to Assign/To Budget assignment plus category-to-category and category-to-budget money movement
 - Calculator-style and conventional amount entry
 - Account, category, and group creation plus working contextual actions
 - Local backup, restore, retention, and pre-restore revert
