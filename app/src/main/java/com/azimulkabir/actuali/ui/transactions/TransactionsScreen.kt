@@ -18,6 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -32,6 +34,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
 import com.azimulkabir.actuali.model.Transaction
 import com.azimulkabir.actuali.model.Account
 import com.azimulkabir.actuali.model.CreditCardStatus
@@ -185,31 +189,59 @@ fun TransactionsScreen(
 @Composable
 private fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
     onNoteChange: (String) -> Unit, onSaveNote: () -> Unit, hideDecimals: Boolean) {
+    var balanceExpanded by remember(account.id) { mutableStateOf(true) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) {
+        Surface(
+            onClick = { balanceExpanded = !balanceExpanded },
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        ) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                DetailAmount("Working balance", account.balanceCents, hideDecimals, true)
-                card?.availableCreditCents?.let { DetailAmount("Available credit", it, hideDecimals) }
-                HorizontalDivider()
-                DetailAmount("Cleared", account.clearedCents, hideDecimals)
-                DetailAmount("Uncleared", account.unclearedCents, hideDecimals)
-                DetailAmount("Reconciled", account.reconciledCents, hideDecimals)
-                card?.config?.limitCents?.let { DetailAmount("Credit limit", it, hideDecimals) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Working balance",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        formatMoneyCents(account.balanceCents, hideDecimals),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Icon(
+                        if (balanceExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                        contentDescription = if (balanceExpanded) "Collapse balance details" else "Expand balance details",
+                        modifier = Modifier.padding(start = 8.dp).size(20.dp),
+                    )
+                }
+                AnimatedVisibility(visible = balanceExpanded) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        card?.availableCreditCents?.let { DetailAmount("Available credit", it, hideDecimals) }
+                        HorizontalDivider()
+                        DetailAmount("Cleared", account.clearedCents, hideDecimals)
+                        DetailAmount("Uncleared", account.unclearedCents, hideDecimals)
+                        DetailAmount("Reconciled", account.reconciledCents, hideDecimals)
+                        card?.config?.limitCents?.let { DetailAmount("Credit limit", it, hideDecimals) }
+                    }
+                }
             }
         }
         card?.let {
             Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Billing cycle", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(it.cycle.dueSummary(), color = MaterialTheme.colorScheme.primary)
+                    Text("Billing cycle", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(it.cycle.dueSummary(), style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary)
                     DetailAmount("Cycle spend", it.cycleSpendCents, hideDecimals)
                 }
             }
         }
-        Text("Account note", style = MaterialTheme.typography.labelLarge)
+        Text("Account note", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
         OutlinedTextField(note, onNoteChange, modifier = Modifier.fillMaxWidth(), minLines = 2,
-            placeholder = { Text("Add note") })
+            textStyle = MaterialTheme.typography.bodyMedium,
+            placeholder = { Text("Add note", style = MaterialTheme.typography.bodyMedium) })
         Button(onClick = onSaveNote, modifier = Modifier.fillMaxWidth()) { Text("Save note") }
     }
 }
@@ -217,8 +249,10 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
 @Composable
 private fun DetailAmount(label: String, amount: Long, hideDecimals: Boolean, strong: Boolean = false) {
     Row(Modifier.fillMaxWidth()) {
-        Text(label, modifier = Modifier.weight(1f), fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal)
-        Text(formatMoneyCents(amount, hideDecimals), fontWeight = if (strong) FontWeight.Bold else FontWeight.Normal)
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal)
+        Text(formatMoneyCents(amount, hideDecimals), style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (strong) FontWeight.Bold else FontWeight.Normal)
     }
 }
 

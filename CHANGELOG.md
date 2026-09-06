@@ -4,6 +4,11 @@ All notable user-facing changes to Actuali for Android are recorded here. This p
 
 ## Unreleased
 
+### Changed
+
+- The working-balance summary in account details can now be collapsed while keeping the current balance visible
+- Account balance details and notes now use the same compact typography scale as the Budget tab
+
 ## [0.1.0-alpha.2] - 2026-09-05
 
 Second public testing release.
