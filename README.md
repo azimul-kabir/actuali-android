@@ -30,6 +30,7 @@ This is an unofficial community project. It is not affiliated with or endorsed b
 - Category notes, rollover overspending, and history-based quick assign
 - Credit-card limits, billing-cycle metadata, due dates, and cycle spending stored through Actual preferences
 - Reports, display currency, decimal, appearance, start-page, and privacy preferences
+- Material You motion for tab changes, detail navigation, searches, and expandable sections
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and detailed port status.
 

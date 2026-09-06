@@ -81,6 +81,7 @@ Android backlog items and will never be ported.
 - Category Spent amounts open the matching category transactions for the selected month
 - Category details with notes, rollover overspending, and six-month history-based quick assign
 - Account details with notes and working, cleared, uncleared, and reconciled balances
+- Collapsible account balance details with compact Budget-tab typography
 - Credit-card account details with limit, available credit, current billing cycle,
   cycle spending, and calculated payment due date
 - Add/edit split transaction UI with per-line category, amount, direction, payee,

@@ -4,6 +4,10 @@ All notable user-facing changes to Actuali for Android are recorded here. This p
 
 ## Unreleased
 
+## [0.1.0-alpha.3] - 2026-09-06
+
+Third public testing release.
+
 ### Changed
 
 - The working-balance summary in account details can now be collapsed while keeping the current balance visible
@@ -74,3 +78,4 @@ Initial public testing release.
 
 [0.1.0-alpha.1]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.1
 [0.1.0-alpha.2]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.2
+[0.1.0-alpha.3]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.3
