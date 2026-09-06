@@ -26,6 +26,7 @@ Android backlog items and will never be ported.
 
 - Budget archive validation, import, download, active selection, and export
 - Password login and server file lifecycle endpoints
+- Editable primary/fallback server addresses with explicitly scoped private-LAN HTTP support and automatic failover without replacing local budgets
 - HLC, CRDT values/messages, protobuf sync protocol, Merkle tree, encryption
 - Sync convergence loop and Android Keystore-backed credentials/keys
 - Actual schema migrations required by current Android reads
@@ -91,7 +92,6 @@ Android backlog items and will never be ported.
 
 - Remaining entity creation/deletion/merge/reorder mutations and Android action wiring
 - Budget templates, goals, and broader automation UI
-- Server failover parity
 - Local-backup export/share and import picker
 
 ## Post-v1 portable features

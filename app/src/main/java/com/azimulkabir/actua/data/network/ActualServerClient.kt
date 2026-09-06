@@ -66,7 +66,22 @@ class ActualServerClient(private val transport: ActualHttpTransport = UrlConnect
         val uri = URI(withScheme)
         require(uri.scheme == "https" || uri.scheme == "http") { "Use an http or https server URL." }
         require(!uri.host.isNullOrBlank()) { "Enter a valid server URL." }
+        require(uri.scheme == "https" || isPrivateHost(uri.host)) {
+            "Cleartext HTTP is only allowed for a private or local server address."
+        }
         return withScheme
+    }
+
+    private fun isPrivateHost(rawHost: String): Boolean {
+        val host = rawHost.lowercase().removePrefix("[").removeSuffix("]")
+        if (host == "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return true
+        if (host == "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:")) return true
+        val octets = host.split('.').mapNotNull(String::toIntOrNull)
+        if (octets.size != 4 || octets.any { it !in 0..255 }) return false
+        return octets[0] == 10 || octets[0] == 127 ||
+            (octets[0] == 169 && octets[1] == 254) ||
+            (octets[0] == 192 && octets[1] == 168) ||
+            (octets[0] == 172 && octets[1] in 16..31)
     }
 
     fun loginMethods(serverUrl: String): List<LoginMethod> {
