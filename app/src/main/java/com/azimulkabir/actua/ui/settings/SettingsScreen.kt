@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 private enum class SettingsPage(val title: String) {
-    Main("More"), Data("Data"), Transactions("Transactions & Automation"),
+    Main("More"), Transactions("Transactions & Automation"),
     Display("Display"), Privacy("Privacy"), Information("Information"),
 }
 
@@ -71,14 +71,11 @@ fun SettingsScreen(
         SettingsHeader(page.title, page != SettingsPage.Main) { page = SettingsPage.Main }
         when (page) {
             SettingsPage.Main -> {
-                SettingsRow("Data", "Connection, budgets, local data and backups", true) { page = SettingsPage.Data }
+                SettingsRow("Connection & Data", "Actual server, budgets, local data and backups", true, onConnectionClick)
                 SettingsRow("Transactions & Automation", "Entry defaults, account summaries, cards and rules", true) { page = SettingsPage.Transactions }
                 SettingsRow("Display", "Currency, appearance, start page and decimals", true) { page = SettingsPage.Display }
                 SettingsRow("Privacy", "Control sensitive information on screen", true) { page = SettingsPage.Privacy }
                 SettingsRow("Information", "About Actua and project credits", true) { page = SettingsPage.Information }
-            }
-            SettingsPage.Data -> {
-                SettingsRow("Connection & Data", "Actual server, budgets, local data and backups", true, onConnectionClick)
             }
             SettingsPage.Transactions -> {
                 SettingsChoice("Default account", defaultAccount ?: "None", listOf("None") + accountOptions) {
