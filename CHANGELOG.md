@@ -11,6 +11,7 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 - Aligned account working-balance values by moving the disclosure control beside the label
 - Remembered collapsed account summaries and Budget category groups across navigation and app restarts
 - Replaced always-open account and category note forms with compact tappable note rows and focused editors
+- Added a tappable Budget month label with a Material month-and-year selector
 - Renamed the independent Android client from Actuali for Android to Actua
 - Changed the application ID and Kotlin namespace from `com.azimulkabir.actuali`
   to `com.azimulkabir.actua`

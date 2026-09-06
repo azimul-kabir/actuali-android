@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -339,6 +340,7 @@ private fun BudgetToolbar(
     onExpandAll: () -> Unit,
     onCollapseAll: () -> Unit,
 ) {
+    var monthPickerOpen by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -347,7 +349,14 @@ private fun BudgetToolbar(
             IconButton(onClick = { onMonthChange(shiftMonth(month, -1)) }) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Previous month")
             }
-            Text(formatMonth(month), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                formatMonth(month),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                    .clickable { monthPickerOpen = true }
+                    .padding(horizontal = 6.dp, vertical = 8.dp),
+            )
             IconButton(onClick = { onMonthChange(shiftMonth(month, 1)) }) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Next month")
             }
@@ -384,6 +393,84 @@ private fun BudgetToolbar(
             }
         }
     }
+    if (monthPickerOpen) {
+        BudgetMonthPicker(
+            selectedMonth = month,
+            onDismiss = { monthPickerOpen = false },
+            onSelect = {
+                onMonthChange(it)
+                monthPickerOpen = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun BudgetMonthPicker(
+    selectedMonth: String,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    val selected = remember(selectedMonth) { java.time.YearMonth.parse(selectedMonth) }
+    var displayedYear by remember(selectedMonth) { mutableStateOf(selected.year) }
+    val monthNames = remember {
+        (1..12).map { monthNumber ->
+            java.time.Month.of(monthNumber).getDisplayName(
+                java.time.format.TextStyle.SHORT,
+                java.util.Locale.getDefault(),
+            )
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { displayedYear-- }) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Previous year")
+                }
+                Text(
+                    displayedYear.toString(),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                )
+                IconButton(onClick = { displayedYear++ }) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Next year")
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                monthNames.chunked(3).forEachIndexed { rowIndex, rowMonths ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        rowMonths.forEachIndexed { columnIndex, label ->
+                            val monthNumber = rowIndex * 3 + columnIndex + 1
+                            val isSelected = displayedYear == selected.year && monthNumber == selected.monthValue
+                            TextButton(
+                                onClick = {
+                                    onSelect(java.time.YearMonth.of(displayedYear, monthNumber).toString())
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.textButtonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                        else androidx.compose.ui.graphics.Color.Transparent,
+                                ),
+                            ) {
+                                Text(label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onSelect(java.time.YearMonth.now().toString())
+            }) { Text("Current month") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 private fun shiftMonth(month: String, amount: Long): String =
