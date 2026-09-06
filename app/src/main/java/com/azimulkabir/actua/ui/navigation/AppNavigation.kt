@@ -59,6 +59,7 @@ import com.azimulkabir.actua.data.sync.SyncRunResult
 import com.azimulkabir.actua.data.preferences.DisplayPreferences
 import com.azimulkabir.actua.ui.components.BalanceVisibility
 import com.azimulkabir.actua.ui.components.CurrencyDisplay
+import com.azimulkabir.actua.ui.components.formatMoneyCents
 
 private enum class MainDestination(
     val label: String,
@@ -283,6 +284,9 @@ fun AppNavigation(
                 },
                 modifier = contentModifier,
                     accountOptions = accounts.filter { !it.closed }.map { it.name },
+                    accountBalanceLabels = if (hideBalances) emptyMap() else accounts
+                        .filterNot { it.closed }
+                        .associate { it.name to formatMoneyCents(it.balanceCents, hideDecimalPlaces) },
                     categoryOptions = categoryNames,
                     payeeOptions = (payeeNames + accounts.filterNot { it.closed }.map { "Transfer: ${it.name}" }).distinct(),
                     defaultAccount = defaultAccount,

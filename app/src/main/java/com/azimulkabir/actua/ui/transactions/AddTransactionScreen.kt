@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
@@ -79,6 +78,7 @@ fun AddTransactionScreen(
     accountOptions: List<String> = listOf("Everyday account", "Cash", "Credit card"),
     categoryOptions: List<String> = listOf("Groceries", "Dining", "Transport", "Rent"),
     payeeOptions: List<String> = emptyList(),
+    accountBalanceLabels: Map<String, String> = emptyMap(),
     defaultAccount: String? = null,
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = false,
@@ -164,6 +164,7 @@ fun AddTransactionScreen(
             if (transactionType != Type.TRANSFER.displayName) {
                 PickerTextField(
                     label = "Payee", value = payee, options = payeeOptions,
+                    supportingValues = accountBalanceLabels.mapKeys { "Transfer: ${it.key}" },
                     onValueChange = { value ->
                         val transferTarget = value.takeIf { it.startsWith("Transfer: ") }
                             ?.removePrefix("Transfer: ")?.takeIf(accountOptions::contains)
@@ -214,6 +215,7 @@ fun AddTransactionScreen(
             PickerTextField(
                 label = if (transactionType == Type.TRANSFER.displayName) "From" else "Account",
                 value = account, options = accountOptions,
+                supportingValues = accountBalanceLabels,
                 onValueChange = {
                     account = it
                     if (transferAccount == it) transferAccount = ""
@@ -223,6 +225,7 @@ fun AddTransactionScreen(
                 PickerTextField(
                     label = "To", value = transferAccount,
                     options = accountOptions.filterNot { it == account },
+                    supportingValues = accountBalanceLabels,
                     onValueChange = { transferAccount = it },
                 )
             } else {
@@ -310,6 +313,7 @@ fun AddTransactionScreen(
                                     label = "Payee (optional)",
                                     value = line.payee,
                                     options = payeeOptions,
+                                    supportingValues = accountBalanceLabels.mapKeys { "Transfer: ${it.key}" },
                                     onValueChange = { value ->
                                         splitLines = splitLines.toMutableList().also {
                                             it[index] = line.copy(payee = value)
@@ -360,7 +364,7 @@ fun AddTransactionScreen(
                 )
                 Box(Modifier.matchParentSize().clickable { showDatePicker = true })
             }
-            OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, minLines = 2,
+            OutlinedTextField(notes, { notes = it }, label = { Text("Notes") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth())
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("Cleared", modifier = Modifier.weight(1f))
@@ -475,6 +479,7 @@ private fun PickerTextField(
     options: List<String>,
     onValueChange: (String) -> Unit,
     allowCustom: Boolean = false,
+    supportingValues: Map<String, String> = emptyMap(),
 ) {
     var showPicker by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth()) {
@@ -493,6 +498,7 @@ private fun PickerTextField(
         selected = value,
         options = options,
         allowCustom = allowCustom,
+        supportingValues = supportingValues,
         onDismiss = { showPicker = false },
         onSelect = {
             onValueChange(it)
@@ -507,6 +513,7 @@ private fun SearchableTransactionPicker(
     selected: String,
     options: List<String>,
     allowCustom: Boolean,
+    supportingValues: Map<String, String>,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
 ) {
@@ -568,7 +575,12 @@ private fun SearchableTransactionPicker(
                 ) {
                     if (selected.isNotBlank() && query.isBlank() && selected in uniqueOptions) {
                         item { PickerSectionLabel("Selected") }
-                        item { PickerGroup(listOf(selected), selected, onSelect = onSelect) }
+                        item {
+                            PickerGroup(
+                                listOf(selected), selected, supportingValues = supportingValues,
+                                onSelect = onSelect,
+                            )
+                        }
                     }
                     if (transferOptions.isNotEmpty()) {
                         item { PickerSectionLabel("Payments and transfers") }
@@ -577,6 +589,7 @@ private fun SearchableTransactionPicker(
                                 options = transferOptions,
                                 selected = selected,
                                 displayText = { it.removePrefix("Transfer: ") },
+                                supportingValues = supportingValues,
                                 onSelect = onSelect,
                             )
                         }
@@ -598,7 +611,10 @@ private fun SearchableTransactionPicker(
                     grouped.forEach { (letter, entries) ->
                         item(key = "heading-$letter") { PickerSectionLabel(letter) }
                         item(key = "group-$letter") {
-                            PickerGroup(entries, selected, onSelect = onSelect)
+                            PickerGroup(
+                                entries, selected, supportingValues = supportingValues,
+                                onSelect = onSelect,
+                            )
                         }
                     }
                     if (filtered.isEmpty() && !(allowCustom && query.isNotBlank())) {
@@ -631,6 +647,7 @@ private fun PickerGroup(
     options: List<String>,
     selected: String,
     displayText: (String) -> String = { it },
+    supportingValues: Map<String, String> = emptyMap(),
     onSelect: (String) -> Unit,
 ) {
     Surface(
@@ -640,7 +657,11 @@ private fun PickerGroup(
     ) {
         Column {
             options.forEachIndexed { index, option ->
-                PickerRow(displayText(option), option == selected) { onSelect(option) }
+                PickerRow(
+                    text = displayText(option),
+                    supportingText = supportingValues[option],
+                    selected = option == selected,
+                ) { onSelect(option) }
                 if (index < options.lastIndex) {
                     HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
                 }
@@ -650,7 +671,12 @@ private fun PickerGroup(
 }
 
 @Composable
-private fun PickerRow(text: String, selected: Boolean, onClick: () -> Unit) {
+private fun PickerRow(
+    text: String,
+    supportingText: String? = null,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 8.dp),
@@ -660,13 +686,18 @@ private fun PickerRow(text: String, selected: Boolean, onClick: () -> Unit) {
         Text(
             text,
             style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1,
             modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
         )
-        if (selected) Icon(
-            Icons.Outlined.Check,
-            contentDescription = "Selected",
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(end = 8.dp),
-        )
+        supportingText?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                textAlign = TextAlign.End,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
+        }
     }
 }
