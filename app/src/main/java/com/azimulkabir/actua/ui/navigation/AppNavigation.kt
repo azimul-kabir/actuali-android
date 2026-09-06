@@ -108,6 +108,7 @@ fun AppNavigation(
     var transactionCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionMonth by rememberSaveable { mutableStateOf<String?>(null) }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
+    var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
     var currencyCode by remember { mutableStateOf(displayPreferences.currencyCode) }
     var currencySymbolOnly by remember { mutableStateOf(displayPreferences.currencySymbolOnly) }
@@ -157,6 +158,10 @@ fun AppNavigation(
 
     BackHandler(enabled = detail != DetailDestination.Main || destination != MainDestination.Budget) {
         when {
+            detail == DetailDestination.EditTransaction && editorReturnsToTransactions -> {
+                detail = DetailDestination.Transactions
+                editingTransaction = null
+            }
             detail != DetailDestination.Main -> {
                 detail = DetailDestination.Main
                 editingTransaction = null
@@ -183,7 +188,10 @@ fun AppNavigation(
                             destination = item
                             detail = if (item == MainDestination.Add) DetailDestination.EditTransaction
                             else DetailDestination.Main
-                            if (item == MainDestination.Add) editingTransaction = null
+                            if (item == MainDestination.Add) {
+                                editingTransaction = null
+                                editorReturnsToTransactions = false
+                            }
                         },
                         icon = { Icon(item.icon, contentDescription = item.label) },
                         label = { Text(item.label) },
@@ -219,6 +227,7 @@ fun AppNavigation(
                 onBack = { detail = DetailDestination.Main },
                 onEdit = {
                     editingTransaction = it
+                    editorReturnsToTransactions = true
                     detail = DetailDestination.EditTransaction
                 },
                 modifier = contentModifier,
@@ -248,8 +257,9 @@ fun AppNavigation(
             DetailDestination.EditTransaction -> AddTransactionScreen(
                 editing = editingTransaction,
                 onBack = {
-                    detail = DetailDestination.Main
-                    if (destination == MainDestination.Add) destination = MainDestination.Accounts
+                    detail = if (editorReturnsToTransactions) DetailDestination.Transactions else DetailDestination.Main
+                    editingTransaction = null
+                    if (!editorReturnsToTransactions && destination == MainDestination.Add) destination = MainDestination.Accounts
                 },
                 onSave = {
                     if (runCatching { repository.saveTransaction(it) }.fold(
@@ -260,8 +270,9 @@ fun AppNavigation(
                             },
                         )) {
                         dataVersion += 1
-                        detail = DetailDestination.Main
-                        destination = MainDestination.Accounts
+                        detail = if (editorReturnsToTransactions) DetailDestination.Transactions else DetailDestination.Main
+                        editingTransaction = null
+                        if (!editorReturnsToTransactions) destination = MainDestination.Accounts
                     }
                 },
                 onDelete = { transaction ->
