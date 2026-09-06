@@ -76,6 +76,9 @@ Android backlog items and will never be ported.
 - Exact-cent account, category, transaction, summary, and transaction-entry presentation;
   hiding decimals never changes stored values
 - Real database-backed Budget overview and Accounts monthly income/expense/net totals
+- Actual income/source-of-funds categories rendered as the final Budget section,
+  with received totals and income-safe contextual actions
+- Persistent table and availability-focused Plan budget presentations
 - Working previous/next budget month navigation, with reads and budget writes scoped to the selected month
 - App-wide display currency selection (including no currency), symbol-only mode,
   and decimal-place presentation

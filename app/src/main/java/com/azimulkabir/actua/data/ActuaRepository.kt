@@ -116,7 +116,7 @@ class ActuaRepository(context: Context) {
             val budget = db.fetchBudgetMonth(month)
             val selectedMonth = java.time.YearMonth.parse(month)
             val histories = (1L..6L).map { offset -> db.fetchBudgetMonth(selectedMonth.minusMonths(offset).toString()) }
-            return (budget.categories + budget.hiddenCategories).groupBy { it.groupId }.values
+            val expenseGroups = (budget.categories + budget.hiddenCategories).groupBy { it.groupId }.values
                 .sortedBy { it.first().groupSortOrder }
                 .map { rows ->
                     BudgetGroup(rows.first().groupName, rows.sortedBy { it.categorySortOrder }.map {
@@ -140,6 +140,31 @@ class ActuaRepository(context: Context) {
                         )
                     }, hidden = rows.first().groupHidden)
                 }
+            val incomeGroups = (budget.incomeCategories + budget.hiddenIncomeCategories)
+                .groupBy { it.groupName }
+                .map { (groupName, rows) ->
+                    BudgetGroup(
+                        name = groupName,
+                        categories = rows.sortedBy { it.sortOrder }.map {
+                            BudgetCategory(
+                                name = it.categoryName,
+                                assigned = centsToDisplayUnits(it.budgetedCents),
+                                spent = centsToDisplayUnits(it.receivedCents),
+                                actualAvailable = centsToDisplayUnits(it.receivedCents),
+                                actualAssignedCents = it.budgetedCents,
+                                id = it.categoryId,
+                                availableCents = it.receivedCents,
+                                hidden = it.hidden,
+                                spentCents = -it.receivedCents,
+                                note = db.fetchNote(it.categoryId),
+                                isIncome = true,
+                            )
+                        },
+                        hidden = rows.first().groupHidden,
+                        isIncome = true,
+                    )
+                }
+            return expenseGroups + incomeGroups
         }
         return emptyList()
     }

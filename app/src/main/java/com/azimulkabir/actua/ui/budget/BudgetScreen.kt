@@ -115,6 +115,8 @@ fun BudgetScreen(
     onShowSpentChange: (Boolean) -> Unit = {},
     showProgressBars: Boolean = false,
     onShowProgressBarsChange: (Boolean) -> Unit = {},
+    budgetView: String = "Table",
+    onBudgetViewChange: (String) -> Unit = {},
     showOverview: Boolean = true,
     onShowOverviewChange: (Boolean) -> Unit = {},
     showGroupTotals: Boolean = true,
@@ -163,6 +165,7 @@ fun BudgetScreen(
             optionsExpanded = optionsExpanded,
             showSpent = showSpent,
             showProgressBars = showProgressBars,
+            budgetView = budgetView,
             showOverview = showOverview,
             showGroupTotals = showGroupTotals,
             hideFullySpent = hideFullySpent,
@@ -171,6 +174,7 @@ fun BudgetScreen(
             onAdd = { showAddSheet = true },
             onShowSpentChange = onShowSpentChange,
             onShowProgressBarsChange = onShowProgressBarsChange,
+            onBudgetViewChange = onBudgetViewChange,
             onShowOverviewChange = onShowOverviewChange,
             onShowGroupTotalsChange = onShowGroupTotalsChange,
             onHideFullySpentChange = onHideFullySpentChange,
@@ -185,7 +189,8 @@ fun BudgetScreen(
             },
         )
         AnimatedVisibility(visible = showOverview) {
-            BudgetOverviewRow(overview, showSpent = showSpent, hideDecimalPlaces = hideDecimalPlaces)
+            if (budgetView == "Plan") PlanBudgetOverview(overview, hideDecimalPlaces)
+            else BudgetOverviewRow(overview, showSpent = showSpent, hideDecimalPlaces = hideDecimalPlaces)
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -196,21 +201,40 @@ fun BudgetScreen(
                         (!hideFullySpent || category.available != 0)
                 }
                 stickyHeader(key = "header-${group.name}") {
-                    BudgetGroupHeader(
-                        group = group.copy(categories = visibleCategories),
-                        collapsed = collapsed,
-                        showSpent = showSpent,
-                        showTotals = showGroupTotals,
-                        hideDecimalPlaces = hideDecimalPlaces,
-                        onClick = {
+                    val onGroupClick = {
                             saveCollapsedGroups(if (collapsed) {
                                 collapsedGroups - group.name
                             } else {
                                 collapsedGroups + group.name
                             })
-                        },
-                        onLongClick = { selectedGroup = group },
-                    )
+                        }
+                    if (group.isIncome) {
+                        IncomeBudgetGroupHeader(
+                            group = group.copy(categories = visibleCategories),
+                            collapsed = collapsed,
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            onClick = onGroupClick,
+                            onLongClick = { selectedGroup = group },
+                        )
+                    } else if (budgetView == "Plan") {
+                        PlanBudgetGroupHeader(
+                            group = group.copy(categories = visibleCategories),
+                            collapsed = collapsed,
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            onClick = onGroupClick,
+                            onLongClick = { selectedGroup = group },
+                        )
+                    } else {
+                        BudgetGroupHeader(
+                            group = group.copy(categories = visibleCategories),
+                            collapsed = collapsed,
+                            showSpent = showSpent,
+                            showTotals = showGroupTotals,
+                            hideDecimalPlaces = hideDecimalPlaces,
+                            onClick = onGroupClick,
+                            onLongClick = { selectedGroup = group },
+                        )
+                    }
                 }
                 itemsIndexed(
                     visibleCategories,
@@ -221,19 +245,37 @@ fun BudgetScreen(
                         enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { -it / 3 },
                         exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { -it / 3 },
                     ) {
-                        CategoryRow(
-                            category = category,
-                            showSpent = showSpent,
-                            showProgressBar = showProgressBars,
-                            showTopDivider = index > 0,
-                            onLongClick = { selectedCategory = category },
-                            onEditBudget = { editingBudget = group to category },
-                            onOpenDetails = { categoryDetails = group to category },
-                            onShowSpentTransactions = {
-                                onShowCategoryTransactions(category.name, true)
-                            },
-                            hideDecimalPlaces = hideDecimalPlaces,
-                        )
+                        if (category.isIncome) {
+                            IncomeBudgetCategoryRow(
+                                category = category,
+                                showTopDivider = index > 0,
+                                hideDecimalPlaces = hideDecimalPlaces,
+                                onClick = { onShowCategoryTransactions(category.name, true) },
+                                onLongClick = { selectedCategory = category },
+                            )
+                        } else if (budgetView == "Plan") {
+                            PlanBudgetCategoryRow(
+                                category = category,
+                                showTopDivider = index > 0,
+                                hideDecimalPlaces = hideDecimalPlaces,
+                                onClick = { categoryDetails = group to category },
+                                onLongClick = { selectedCategory = category },
+                            )
+                        } else {
+                            CategoryRow(
+                                category = category,
+                                showSpent = showSpent,
+                                showProgressBar = showProgressBars,
+                                showTopDivider = index > 0,
+                                onLongClick = { selectedCategory = category },
+                                onEditBudget = { editingBudget = group to category },
+                                onOpenDetails = { categoryDetails = group to category },
+                                onShowSpentTransactions = {
+                                    onShowCategoryTransactions(category.name, true)
+                                },
+                                hideDecimalPlaces = hideDecimalPlaces,
+                            )
+                        }
                     }
                 }
             }
@@ -325,6 +367,7 @@ private fun BudgetToolbar(
     optionsExpanded: Boolean,
     showSpent: Boolean,
     showProgressBars: Boolean,
+    budgetView: String,
     showOverview: Boolean,
     showGroupTotals: Boolean,
     hideFullySpent: Boolean,
@@ -333,6 +376,7 @@ private fun BudgetToolbar(
     onAdd: () -> Unit,
     onShowSpentChange: (Boolean) -> Unit,
     onShowProgressBarsChange: (Boolean) -> Unit,
+    onBudgetViewChange: (String) -> Unit,
     onShowOverviewChange: (Boolean) -> Unit,
     onShowGroupTotalsChange: (Boolean) -> Unit,
     onHideFullySpentChange: (Boolean) -> Unit,
@@ -380,6 +424,11 @@ private fun BudgetToolbar(
                 expanded = optionsExpanded,
                 onDismissRequest = { onOptionsChange(false) },
             ) {
+                ToggleMenuItem("Plan view", budgetView == "Plan") {
+                    onBudgetViewChange(if (it) "Plan" else "Table")
+                    onOptionsChange(false)
+                }
+                HorizontalDivider()
                 ToggleMenuItem("Show overview", showOverview, onShowOverviewChange)
                 ToggleMenuItem("Show spent column", showSpent, onShowSpentChange)
                 ToggleMenuItem("Show progress bars", showProgressBars, onShowProgressBarsChange)
@@ -486,6 +535,213 @@ private fun ToggleMenuItem(label: String, checked: Boolean, onChange: (Boolean) 
         trailingIcon = { Checkbox(checked = checked, onCheckedChange = null) },
         onClick = { onChange(!checked) },
     )
+}
+
+@Composable
+private fun PlanBudgetOverview(overview: BudgetOverview, hideDecimalPlaces: Boolean) {
+    Surface(
+        color = if ((overview.toBudgetCents ?: 0L) >= 0) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.errorContainer,
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
+            Text("Ready to assign", style = MaterialTheme.typography.titleSmall)
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PlanBudgetGroupHeader(
+    group: BudgetGroup,
+    collapsed: Boolean,
+    hideDecimalPlaces: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (collapsed) -90f else 0f,
+        animationSpec = tween(220),
+        label = "plan group chevron",
+    )
+    val assigned = group.categories.sumOf { it.assignedCents }
+    val available = group.categories.sumOf { it.balanceCents }
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+        Row(
+            modifier = Modifier.fillMaxWidth().combinedClickable(
+                role = Role.Button, onClick = onClick, onLongClick = onLongClick,
+            ).padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.KeyboardArrowDown,
+                contentDescription = if (collapsed) "Expand ${group.name}" else "Collapse ${group.name}",
+                modifier = Modifier.width(24.dp).rotate(rotation),
+            )
+            Text(
+                if (group.hidden) "${group.name} · Hidden" else group.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(start = 4.dp),
+            )
+            AmountColumn("Assigned", assigned, Modifier.width(92.dp), hideDecimalPlaces)
+            AmountColumn("Available", available, Modifier.width(92.dp), hideDecimalPlaces, balance = true)
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PlanBudgetCategoryRow(
+    category: BudgetCategory,
+    showTopDivider: Boolean,
+    hideDecimalPlaces: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    if (showTopDivider) HorizontalDivider(
+        modifier = Modifier.padding(start = 16.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+    )
+    Column(
+        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (category.hidden) "${category.name} · Hidden" else category.name,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = when {
+                    category.balanceCents < 0 -> MaterialTheme.colorScheme.errorContainer
+                    category.balanceCents > 0 -> MaterialTheme.colorScheme.primaryContainer
+                    else -> MaterialTheme.colorScheme.surfaceContainerHighest
+                },
+            ) {
+                Text(
+                    formatMoneyCents(category.balanceCents, hideDecimalPlaces),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                )
+            }
+        }
+        val fraction = if (category.assignedCents <= 0L) 0f else
+            (category.spentCents.toFloat() / category.assignedCents).coerceIn(0f, 1f)
+        LinearProgressIndicator(
+            progress = { fraction },
+            modifier = Modifier.fillMaxWidth().padding(top = 9.dp).height(5.dp)
+                .clip(RoundedCornerShape(100)),
+            color = if (category.balanceCents < 0) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        )
+        Text(
+            "Assigned ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)} · " +
+                "Spent ${formatMoneyCents(category.spentCents, hideDecimalPlaces)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun IncomeBudgetGroupHeader(
+    group: BudgetGroup,
+    collapsed: Boolean,
+    hideDecimalPlaces: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (collapsed) -90f else 0f,
+        animationSpec = tween(220),
+        label = "income group chevron",
+    )
+    val received = group.categories.sumOf { it.balanceCents }
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+        Row(
+            modifier = Modifier.fillMaxWidth().combinedClickable(
+                role = Role.Button, onClick = onClick, onLongClick = onLongClick,
+            ).padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.KeyboardArrowDown,
+                contentDescription = if (collapsed) "Expand ${group.name}" else "Collapse ${group.name}",
+                modifier = Modifier.width(24.dp).rotate(rotation),
+            )
+            Text(
+                if (group.hidden) "${group.name} · Hidden" else group.name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f).padding(start = 4.dp),
+            )
+            Text(
+                "Received ${formatMoneyCents(received, hideDecimalPlaces)}",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (received > 0L) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun IncomeBudgetCategoryRow(
+    category: BudgetCategory,
+    showTopDivider: Boolean,
+    hideDecimalPlaces: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    if (showTopDivider) HorizontalDivider(
+        modifier = Modifier.padding(start = 16.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth().combinedClickable(
+            role = Role.Button, onClick = onClick, onLongClick = onLongClick,
+        ).padding(horizontal = 16.dp, vertical = 15.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            if (category.hidden) "${category.name} · Hidden" else category.name,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            formatMoneyCents(category.balanceCents, hideDecimalPlaces),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (category.balanceCents > 0L) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable
@@ -925,11 +1181,15 @@ private fun CategoryActionsSheet(
             Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
             SheetAction("Rename category", onRename)
-            SheetAction("Budget details", onDetails)
-            SheetAction("Edit budgeted amount", onEditBudget)
+            if (!category.isIncome) {
+                SheetAction("Budget details", onDetails)
+                SheetAction("Edit budgeted amount", onEditBudget)
+            }
             SheetAction("Transactions this month", onTransactionsThisMonth)
             SheetAction("All transactions", onAllTransactions)
-            if (category.available != 0) SheetAction(if (category.available < 0) "Cover overspending" else "Move money", onMoveMoney)
+            if (!category.isIncome && category.available != 0) {
+                SheetAction(if (category.available < 0) "Cover overspending" else "Move money", onMoveMoney)
+            }
             SheetAction(if (hidden) "Unhide category" else "Hide category", { onSetHidden(!hidden) }, destructive = !hidden)
         }
     }
@@ -944,7 +1204,9 @@ private fun GroupActionsSheet(group: BudgetGroup, onDismiss: () -> Unit, onRenam
             Text(group.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
             SheetAction("Rename group", onRename)
-            SheetAction(if (hidden) "Unhide group" else "Hide group", { onSetHidden(!hidden) }, destructive = !hidden)
+            if (!group.isIncome || hidden) {
+                SheetAction(if (hidden) "Unhide group" else "Hide group", { onSetHidden(!hidden) }, destructive = !hidden)
+            }
         }
     }
 }

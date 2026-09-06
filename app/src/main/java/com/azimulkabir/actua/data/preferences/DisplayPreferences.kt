@@ -29,6 +29,10 @@ class DisplayPreferences(context: Context) {
         get() = preferences.getBoolean(SHOW_BUDGET_PROGRESS_BARS, false)
         set(value) { preferences.edit().putBoolean(SHOW_BUDGET_PROGRESS_BARS, value).apply() }
 
+    var budgetView: String
+        get() = preferences.getString(BUDGET_VIEW, "Table") ?: "Table"
+        set(value) { preferences.edit().putString(BUDGET_VIEW, value).apply() }
+
     var showBudgetOverview: Boolean
         get() = preferences.getBoolean(SHOW_BUDGET_OVERVIEW, true)
         set(value) { preferences.edit().putBoolean(SHOW_BUDGET_OVERVIEW, value).apply() }
@@ -78,6 +82,7 @@ class DisplayPreferences(context: Context) {
         const val SHOW_HIDDEN_CATEGORIES = "show_hidden_categories"
         const val SHOW_SPENT_COLUMN = "show_spent_column"
         const val SHOW_BUDGET_PROGRESS_BARS = "show_budget_progress_bars"
+        const val BUDGET_VIEW = "budget_view"
         const val SHOW_BUDGET_OVERVIEW = "show_budget_overview"
         const val SHOW_GROUP_TOTALS = "show_group_totals"
         const val HIDE_FULLY_SPENT_CATEGORIES = "hide_fully_spent_categories"

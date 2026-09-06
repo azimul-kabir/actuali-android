@@ -13,6 +13,7 @@ data class BudgetCategory(
     val carryoverEnabled: Boolean = false,
     val note: String = "",
     val history: List<BudgetHistory> = emptyList(),
+    val isIncome: Boolean = false,
 ) {
     val available: Int get() = actualAvailable ?: assigned - spent
     val assignedCents: Long get() = actualAssignedCents ?: assigned.toLong() * 100
@@ -32,4 +33,5 @@ data class BudgetGroup(
     val name: String,
     val categories: List<BudgetCategory>,
     val hidden: Boolean = false,
+    val isIncome: Boolean = false,
 )
