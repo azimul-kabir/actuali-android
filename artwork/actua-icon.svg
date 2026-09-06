@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Actua app icon</title>
+  <desc id="desc">A dimensional cream ribbon forming the letter A and an envelope on a solid violet field.</desc>
+  <defs>
+    <linearGradient id="ribbon" x1="251" y1="212" x2="748" y2="833" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fffdf7"/><stop offset=".55" stop-color="#fffaf0"/><stop offset="1" stop-color="#f7f0e5"/></linearGradient>
+    <linearGradient id="rightFold" x1="603" y1="315" x2="724" y2="546" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#d8d0e8"/><stop offset=".58" stop-color="#f6f1ed"/><stop offset="1" stop-color="#fffaf0"/></linearGradient>
+    <linearGradient id="leftEnvelope" x1="339" y1="532" x2="474" y2="718" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ded7ec"/><stop offset="1" stop-color="#fffaf0"/></linearGradient>
+    <linearGradient id="rightEnvelope" x1="690" y1="532" x2="551" y2="718" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#d6cee6"/><stop offset="1" stop-color="#fffaf0"/></linearGradient>
+  </defs>
+  <path fill="#4b18d1" d="M0 0h1024v1024H0z"/>
+  <path fill="url(#ribbon)" fill-rule="evenodd" d="M245 824c-59 0-91-55-62-109l218-434c21-42 48-64 91-64h39c43 0 70 22 91 64l219 434c28 54-4 109-63 109h-27c-25 0-43-8-61-25L548 663c-21-20-52-20-73 0L334 799c-18 17-37 25-62 25h-27zM411 477l100-181 101 181c13 23 28 30 53 30h29c9 0 13 12 5 18L539 630c-17 12-39 12-56 0L323 525c-8-6-4-18 6-18h29c25 0 40-7 53-30z"/>
+  <path fill="url(#rightFold)" d="M511 296l77-14c18-3 30 6 39 24l89 176c7 14-2 25-17 25h-34c-25 0-40-7-53-30L511 296z"/>
+  <path fill="url(#leftEnvelope)" d="M323 525l160 105c10 7 20 10 28 10-18 2-31 9-45 22l-95 92-52-195c-4-15-2-25 4-34z"/>
+  <path fill="url(#rightEnvelope)" d="M699 525L539 630c-10 7-20 10-28 10 18 2 31 9 45 22l96 92 51-195c4-15 2-25-4-34z"/>
+</svg>
