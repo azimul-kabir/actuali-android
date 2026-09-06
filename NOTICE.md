@@ -23,8 +23,10 @@ Those portions are MIT-licensed and retain the copyright notice for James Long. 
 ## Artwork
 
 The original Actuali app icon was designed by
-[u/bdownz](https://www.reddit.com/user/bdownz/). Actua's adaptive launcher icon
-is independently created and does not reuse the Actuali icon artwork.
+[u/bdownz](https://www.reddit.com/user/bdownz/). Actua's ribbon-and-envelope
+icon is a newly rendered treatment closely based on that original design.
+The upstream artwork and design contribution remain credited under the
+Actuali project's MIT license.
 
 ## Trademarks and support
 

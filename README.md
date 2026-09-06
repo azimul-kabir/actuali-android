@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="artwork/actua-icon.svg" alt="Actua app icon" width="128" height="128">
+<img src="artwork/actua-icon.png" alt="Actua app icon" width="128" height="128">
 
 # Actua
 

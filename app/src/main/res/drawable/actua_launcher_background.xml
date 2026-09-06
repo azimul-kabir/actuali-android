@@ -3,18 +3,18 @@
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path android:pathData="M0,0H108V108H0Z">
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <path android:pathData="M0,0H1024V1024H0Z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startX="18"
-                android:startY="8"
-                android:endX="90"
-                android:endY="100"
+                android:startX="180"
+                android:startY="40"
+                android:endX="850"
+                android:endY="980"
                 android:type="linear">
-                <item android:color="#FF32129B" android:offset="0" />
-                <item android:color="#FF5522D2" android:offset="0.52" />
+                <item android:color="#FF261080" android:offset="0" />
+                <item android:color="#FF4C1EC4" android:offset="0.48" />
                 <item android:color="#FF7138F2" android:offset="1" />
             </gradient>
         </aapt:attr>
