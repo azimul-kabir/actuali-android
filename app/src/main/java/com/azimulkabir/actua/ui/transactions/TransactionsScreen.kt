@@ -343,7 +343,8 @@ private fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
             else MaterialTheme.colorScheme.outlineVariant) { Spacer(Modifier.width(10.dp)) }
         Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
             Text(transaction.payee, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
-            Text("${transaction.category} • ${transaction.account}", style = MaterialTheme.typography.bodySmall,
+            Text(listOf(transaction.category, transaction.account).filter(String::isNotBlank).joinToString(" • "),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Column(horizontalAlignment = Alignment.End) {

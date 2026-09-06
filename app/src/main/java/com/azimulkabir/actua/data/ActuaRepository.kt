@@ -216,17 +216,22 @@ class ActuaRepository(context: Context) {
             // an in-memory Compose list, so explicitly load the complete history; otherwise
             // older synced transactions exist locally but silently disappear from Accounts.
             return db.fetchTransactions(limit = Int.MAX_VALUE).map {
+                val isTransfer = it.transferId != null
                 Transaction(
                     id = it.id,
                     date = it.date.toString(),
                     payee = it.payeeName ?: if (it.isParent) "Split" else "",
-                    category = it.categoryName ?: if (it.isParent) "Split" else "Uncategorized",
+                    category = when {
+                        isTransfer -> ""
+                        it.isParent -> "Split"
+                        else -> it.categoryName ?: "Uncategorized"
+                    },
                     account = accountNames[it.accountId] ?: "Unknown",
                     amount = centsToDisplayUnits(it.amountCents),
                     cleared = it.cleared,
                     amountCents = it.amountCents,
                     type = when {
-                        it.transferId != null -> Type.TRANSFER
+                        isTransfer -> Type.TRANSFER
                         it.amountCents >= 0 -> Type.INCOME
                         else -> Type.EXPENSE
                     },

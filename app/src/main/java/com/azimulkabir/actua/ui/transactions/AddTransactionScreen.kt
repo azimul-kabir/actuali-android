@@ -347,7 +347,7 @@ fun AddTransactionScreen(
                         id = editing?.id.orEmpty(),
                         date = storageDate(date),
                         payee = payee,
-                        category = category.ifBlank { "Uncategorized" },
+                        category = if (transactionType == "Transfer") "" else category.ifBlank { "Uncategorized" },
                         account = account,
                         amount = (amountCents / 100L).toInt() * if (transactionType == "Income") 1 else -1,
                         cleared = cleared,
