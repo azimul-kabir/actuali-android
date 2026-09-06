@@ -1,6 +1,16 @@
 package com.azimulkabir.actuali.ui.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
@@ -178,7 +188,25 @@ fun AppNavigation(
         },
     ) { innerPadding ->
         val contentModifier = Modifier.padding(innerPadding)
-        when (detail) {
+        AnimatedContent(
+            targetState = detail to destination,
+            transitionSpec = {
+                val openingDetail = initialState.first == DetailDestination.Main &&
+                    targetState.first != DetailDestination.Main
+                val closingDetail = initialState.first != DetailDestination.Main &&
+                    targetState.first == DetailDestination.Main
+                when {
+                    openingDetail -> (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { it / 5 }) togetherWith
+                        (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { -it / 10 })
+                    closingDetail -> (fadeIn(tween(220)) + slideInHorizontally(tween(300)) { -it / 5 }) togetherWith
+                        (fadeOut(tween(140)) + slideOutHorizontally(tween(220)) { it / 10 })
+                    else -> (fadeIn(tween(220)) + scaleIn(tween(260), initialScale = 0.985f)) togetherWith
+                        (fadeOut(tween(140)) + scaleOut(tween(180), targetScale = 1.015f))
+                }.using(SizeTransform(clip = false))
+            },
+            label = "Main navigation motion",
+        ) { (shownDetail, shownDestination) ->
+        when (shownDetail) {
             DetailDestination.Transactions -> TransactionsScreen(
                 accountName = transactionAccount,
                 categoryName = transactionCategory,
@@ -272,7 +300,7 @@ fun AppNavigation(
                     destination = MainDestination.More
                     detail = DetailDestination.Connection
                 }
-            } else when (destination) {
+            } else when (shownDestination) {
                 MainDestination.Budget -> BudgetScreen(
                     contentModifier,
                     groups = budgetGroups,
@@ -442,6 +470,7 @@ fun AppNavigation(
                     },
                 )
             }
+        }
         }
     }
 }

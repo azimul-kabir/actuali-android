@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Button
@@ -35,6 +34,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -124,7 +130,11 @@ fun TransactionsScreen(
                 }
             }
         }
-        if (showSearch) {
+        AnimatedVisibility(
+            visible = showSearch,
+            enter = fadeIn(tween(180)) + expandVertically(tween(240)),
+            exit = fadeOut(tween(120)) + shrinkVertically(tween(200)),
+        ) {
             OutlinedTextField(
                 value = search, onValueChange = { search = it },
                 placeholder = { Text("Search transactions") }, singleLine = true,
@@ -190,6 +200,11 @@ fun TransactionsScreen(
 private fun AccountDetails(account: Account, card: CreditCardStatus?, note: String,
     onNoteChange: (String) -> Unit, onSaveNote: () -> Unit, hideDecimals: Boolean) {
     var balanceExpanded by remember(account.id) { mutableStateOf(true) }
+    val balanceArrowRotation by animateFloatAsState(
+        targetValue = if (balanceExpanded) 180f else 0f,
+        animationSpec = tween(250),
+        label = "Balance disclosure",
+    )
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Surface(
@@ -211,12 +226,16 @@ private fun AccountDetails(account: Account, card: CreditCardStatus?, note: Stri
                         fontWeight = FontWeight.Bold,
                     )
                     Icon(
-                        if (balanceExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                        Icons.Outlined.ExpandMore,
                         contentDescription = if (balanceExpanded) "Collapse balance details" else "Expand balance details",
-                        modifier = Modifier.padding(start = 8.dp).size(20.dp),
+                        modifier = Modifier.padding(start = 8.dp).size(20.dp).rotate(balanceArrowRotation),
                     )
                 }
-                AnimatedVisibility(visible = balanceExpanded) {
+                AnimatedVisibility(
+                    visible = balanceExpanded,
+                    enter = fadeIn(tween(180)) + expandVertically(tween(260)),
+                    exit = fadeOut(tween(120)) + shrinkVertically(tween(220)),
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         card?.availableCreditCents?.let { DetailAmount("Available credit", it, hideDecimals) }
                         HorizontalDivider()
