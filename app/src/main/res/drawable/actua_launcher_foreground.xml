@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt" android:width="108dp" android:height="108dp" android:viewportWidth="1024" android:viewportHeight="1024">
-    <path android:fillType="evenOdd" android:pathData="M245,824C186,824 154,769 183,715L401,281C422,239 449,217 492,217H531C574,217 601,239 622,281L841,715C869,769 837,824 778,824H751C726,824 708,816 690,799L548,663C527,643 496,643 475,663L334,799C316,816 297,824 272,824H245ZM411,477L511,296 612,477C625,500 640,507 665,507H694C703,507 707,519 699,525L539,630C522,642 500,642 483,630L323,525C315,519 319,507 329,507H358C383,507 398,500 411,477Z">
-        <aapt:attr name="android:fillColor"><gradient android:startX="251" android:startY="212" android:endX="748" android:endY="833" android:type="linear"><item android:color="#FFFFFDF7" android:offset="0"/><item android:color="#FFFFFAF0" android:offset="0.55"/><item android:color="#FFF7F0E5" android:offset="1"/></gradient></aapt:attr>
-    </path>
-    <path android:pathData="M511,296L588,282C606,279 618,288 627,306L716,482C723,496 714,507 699,507H665C640,507 625,500 612,477L511,296Z">
-        <aapt:attr name="android:fillColor"><gradient android:startX="603" android:startY="315" android:endX="724" android:endY="546" android:type="linear"><item android:color="#FFD8D0E8" android:offset="0"/><item android:color="#FFF6F1ED" android:offset="0.58"/><item android:color="#FFFFFAF0" android:offset="1"/></gradient></aapt:attr>
-    </path>
-    <path android:pathData="M323,525L483,630C493,637 503,640 511,640C493,642 480,649 466,662L371,754 319,559C315,544 317,534 323,525Z">
-        <aapt:attr name="android:fillColor"><gradient android:startX="339" android:startY="532" android:endX="474" android:endY="718" android:type="linear"><item android:color="#FFDED7EC" android:offset="0"/><item android:color="#FFFFFAF0" android:offset="1"/></gradient></aapt:attr>
-    </path>
-    <path android:pathData="M699,525L539,630C529,637 519,640 511,640C529,642 542,649 556,662L652,754 703,559C707,544 705,534 699,525Z">
-        <aapt:attr name="android:fillColor"><gradient android:startX="690" android:startY="532" android:endX="551" android:endY="718" android:type="linear"><item android:color="#FFD6CEE6" android:offset="0"/><item android:color="#FFFFFAF0" android:offset="1"/></gradient></aapt:attr>
-    </path>
-</vector>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Exact approved mark, kept within the adaptive-icon safe region. -->
+    <item
+        android:width="40dp"
+        android:height="35dp"
+        android:bottom="4dp"
+        android:gravity="center">
+        <bitmap android:antialias="true" android:filter="true" android:gravity="fill"
+            android:src="@drawable/actua_mark" />
+    </item>
+</layer-list>

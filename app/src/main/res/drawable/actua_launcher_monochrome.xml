@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="1024" android:viewportHeight="1024">
-    <path android:fillColor="#FF000000" android:fillType="evenOdd" android:pathData="M245,824C186,824 154,769 183,715L401,281C422,239 449,217 492,217H531C574,217 601,239 622,281L841,715C869,769 837,824 778,824H751C726,824 708,816 690,799L548,663C527,643 496,643 475,663L334,799C316,816 297,824 272,824H245ZM411,477L511,296 612,477C625,500 640,507 665,507H694C703,507 707,519 699,525L539,630C522,642 500,642 483,630L323,525C315,519 319,507 329,507H358C383,507 398,500 411,477Z"/>
-</vector>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android uses the source alpha as a single-color Material You mask. -->
+    <item
+        android:width="40dp"
+        android:height="35dp"
+        android:bottom="4dp"
+        android:gravity="center">
+        <bitmap android:antialias="true" android:filter="true" android:gravity="fill"
+            android:src="@drawable/actua_mark" />
+    </item>
+</layer-list>

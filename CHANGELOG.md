@@ -6,6 +6,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
+- Replaced the approximate Actua launcher vector with the exact approved ribbon-and-envelope mark, scaled with comfortable adaptive-mask padding
+- Preserved the solid violet adaptive background and Android 13+ Material You themed-icon support
 - Renamed the independent Android client from Actuali for Android to Actua
 - Changed the application ID and Kotlin namespace from `com.azimulkabir.actuali`
   to `com.azimulkabir.actua`
