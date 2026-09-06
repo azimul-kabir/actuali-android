@@ -620,7 +620,7 @@ private fun PlanBudgetGroupHeader(
     )
     val assigned = group.categories.sumOf { it.assignedCents }
     val available = group.categories.sumOf { it.balanceCents }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 1.dp) {
         Row(
             modifier = Modifier.fillMaxWidth().combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
@@ -635,7 +635,7 @@ private fun PlanBudgetGroupHeader(
             Text(
                 if (group.hidden) "${group.name} · Hidden" else group.name,
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f).padding(start = 4.dp),
@@ -662,7 +662,7 @@ private fun PlanBudgetCategoryRow(
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
     )
     Column(
-        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainerLow)
+        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
             .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick)
             .padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
     ) {
@@ -743,7 +743,7 @@ private fun IncomeBudgetGroupHeader(
         label = "income group chevron",
     )
     val received = group.categories.sumOf { it.balanceCents }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 1.dp) {
         Row(
             modifier = Modifier.fillMaxWidth().combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
@@ -758,7 +758,7 @@ private fun IncomeBudgetGroupHeader(
             Text(
                 if (group.hidden) "${group.name} · Hidden" else group.name,
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f).padding(start = 4.dp),
             )
             Text(
@@ -872,7 +872,7 @@ private fun BudgetGroupHeader(
     val spent = group.categories.sumOf { it.spentCents }
     val balance = group.categories.sumOf { it.balanceCents }
 
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 1.dp) {
         Row(
             modifier = Modifier.fillMaxWidth().combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
@@ -886,7 +886,7 @@ private fun BudgetGroupHeader(
                     modifier = Modifier.width(24.dp).rotate(rotation),
                 )
                 Text(if (group.hidden) "${group.name} · Hidden" else group.name,
-                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
                     color = if (group.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }

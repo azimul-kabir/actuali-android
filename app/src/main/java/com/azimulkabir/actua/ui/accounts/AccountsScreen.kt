@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -223,7 +224,7 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
     hideDecimalPlaces: Boolean, onClick: () -> Unit) {
     val rotation by animateFloatAsState(if (collapsed) -90f else 0f, tween(220), label = "account section")
     val total = section.accounts.sumOf { it.balanceCents }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 1.dp) {
         Row(
             modifier = Modifier.fillMaxWidth().combinedClickable(
                 role = Role.Button, onClick = onClick, onLongClick = {},
@@ -233,7 +234,7 @@ private fun AccountSectionHeader(section: AccountSection, collapsed: Boolean,
             Icon(Icons.Outlined.KeyboardArrowDown,
                 contentDescription = if (collapsed) "Expand ${section.title}" else "Collapse ${section.title}",
                 modifier = Modifier.rotate(rotation))
-            Text(section.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
+            Text(section.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f))
             BalanceText(total, FontWeight.SemiBold, hideDecimalPlaces)
             // Match the space occupied by the account-row disclosure chevron.
@@ -257,7 +258,8 @@ private fun AccountRow(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
     }
     Row(
-        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
+        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(start = 24.dp, top = 15.dp, end = 12.dp, bottom = 15.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
