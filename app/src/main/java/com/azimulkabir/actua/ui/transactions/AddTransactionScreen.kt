@@ -456,17 +456,15 @@ private fun PickerTextField(
     LaunchedEffect(value) {
         if (fieldValue.text != value) fieldValue = TextFieldValue(value, TextRange(value.length))
     }
-    val fullSelection = fieldValue.text.isNotEmpty() &&
-        fieldValue.selection.min == 0 && fieldValue.selection.max == fieldValue.text.length
-    val filtered = remember(fieldValue.text, fullSelection, options) {
-        val query = fieldValue.text.takeUnless { fullSelection }.orEmpty()
-        if (!editable || query.isBlank()) options.distinct()
-        else options.filter { it.contains(query, ignoreCase = true) }.distinct()
+    val filtered = remember(fieldValue.text, options) {
+        if (!editable || fieldValue.text.isBlank()) options.distinct()
+        else options.filter { it.contains(fieldValue.text, ignoreCase = true) }.distinct()
     }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { shouldExpand ->
         expanded = shouldExpand
         if (shouldExpand && editable && fieldValue.text.isNotEmpty()) {
-            fieldValue = fieldValue.copy(selection = TextRange(0, fieldValue.text.length))
+            fieldValue = TextFieldValue("")
+            onValueChange("")
         }
     }) {
         OutlinedTextField(
