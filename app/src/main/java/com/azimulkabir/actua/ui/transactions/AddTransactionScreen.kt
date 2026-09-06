@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.Transaction
@@ -75,6 +78,7 @@ fun AddTransactionScreen(
     defaultAccount: String? = null,
     hideDecimalPlaces: Boolean = false,
     conventionalAmountEntry: Boolean = false,
+    onResolveRuleCategory: (Transaction) -> String? = { null },
 ) {
     var amountCents by remember(editing) { mutableStateOf(abs(editing?.amountCents ?: 0L)) }
     var showCalculator by remember { mutableStateOf(false) }
@@ -156,7 +160,23 @@ fun AddTransactionScreen(
             if (transactionType != Type.TRANSFER.displayName) {
                 PickerTextField(
                     label = "Payee", value = payee, options = payeeOptions,
-                    onValueChange = { payee = it }, editable = true,
+                    onValueChange = { value ->
+                        payee = value
+                        onResolveRuleCategory(
+                            Transaction(
+                                id = "",
+                                account = account,
+                                payee = value,
+                                category = category,
+                                amount = (amountCents / 100).toInt(),
+                                amountCents = amountCents,
+                                type = Type.entries.first { it.displayName == transactionType },
+                                date = storageDate(date),
+                                notes = notes,
+                                cleared = cleared,
+                            ),
+                        )?.let { category = it }
+                    }, editable = true,
                 )
             }
             if (!isSplit) {
@@ -432,16 +452,29 @@ private fun PickerTextField(
     editable: Boolean,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val filtered = remember(value, options) {
-        if (!editable || value.isBlank()) options.distinct()
-        else options.filter { it.contains(value, ignoreCase = true) }.distinct()
+    var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
+    LaunchedEffect(value) {
+        if (fieldValue.text != value) fieldValue = TextFieldValue(value, TextRange(value.length))
     }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+    val fullSelection = fieldValue.text.isNotEmpty() &&
+        fieldValue.selection.min == 0 && fieldValue.selection.max == fieldValue.text.length
+    val filtered = remember(fieldValue.text, fullSelection, options) {
+        val query = fieldValue.text.takeUnless { fullSelection }.orEmpty()
+        if (!editable || query.isBlank()) options.distinct()
+        else options.filter { it.contains(query, ignoreCase = true) }.distinct()
+    }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { shouldExpand ->
+        expanded = shouldExpand
+        if (shouldExpand && editable && fieldValue.text.isNotEmpty()) {
+            fieldValue = fieldValue.copy(selection = TextRange(0, fieldValue.text.length))
+        }
+    }) {
         OutlinedTextField(
-            value = value,
-            onValueChange = {
+            value = fieldValue,
+            onValueChange = { next ->
                 if (editable) {
-                    onValueChange(it)
+                    fieldValue = next
+                    onValueChange(next.text)
                     expanded = true
                 }
             },
@@ -465,6 +498,7 @@ private fun PickerTextField(
                 DropdownMenuItem(
                     text = { Text(option) },
                     onClick = {
+                        fieldValue = TextFieldValue(option, TextRange(option.length))
                         onValueChange(option)
                         expanded = false
                     },

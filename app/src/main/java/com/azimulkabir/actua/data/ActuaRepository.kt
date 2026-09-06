@@ -325,6 +325,48 @@ class ActuaRepository(context: Context) {
         error("Connect to Actual and download a budget before adding transactions")
     }
 
+    fun ruleCategoryFor(transaction: Transaction): String? {
+        val db = actualDatabase ?: return null
+        if (transaction.type == Type.TRANSFER) return null
+        val account = db.fetchAccounts().firstOrNull { it.name == transaction.account && !it.closed } ?: return null
+        val payee = db.fetchPayees().firstOrNull {
+            it.transferAccountId == null && it.name.equals(transaction.payee.trim(), ignoreCase = true)
+        }
+        val categories = db.fetchCategoryGroups().flatMap { it.categories }
+        val currentCategory = categories.firstOrNull { it.name == transaction.category }?.id
+        val signedAmount = when (transaction.type) {
+            Type.EXPENSE -> -kotlin.math.abs(transaction.amountCents)
+            Type.INCOME -> kotlin.math.abs(transaction.amountCents)
+            Type.TRANSFER -> transaction.amountCents
+        }
+        val preview = com.azimulkabir.actua.data.rules.RulesEngine.apply(
+            com.azimulkabir.actua.data.budget.model.ActualTransaction(
+                id = "rule-preview",
+                accountId = account.id,
+                date = parseDate(transaction.date),
+                amountCents = signedAmount,
+                payeeId = payee?.id,
+                payeeName = payee?.name ?: transaction.payee.trim().takeIf(String::isNotEmpty),
+                categoryId = currentCategory,
+                categoryName = transaction.category.takeIf(String::isNotEmpty),
+                notes = transaction.notes.takeIf(String::isNotEmpty),
+                cleared = transaction.cleared,
+                reconciled = false,
+                transferId = null,
+                isParent = false,
+                parentId = null,
+                tombstone = false,
+                sortOrder = null,
+                importedPayee = transaction.payee.trim().takeIf(String::isNotEmpty),
+                scheduleId = null,
+                transferAccountId = null,
+            ),
+            db.fetchRules(),
+            db.ruleContext(),
+        ).transaction
+        return preview.categoryId?.let { id -> categories.firstOrNull { it.id == id }?.name }
+    }
+
     fun setAccountClosed(name: String, closed: Boolean): Boolean {
         val db = actualDatabase ?: return false
         val account = db.fetchAccounts().firstOrNull { it.name == name } ?: return false

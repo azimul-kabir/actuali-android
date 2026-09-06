@@ -115,7 +115,7 @@ class ActualTransactionFormService(
                     writer.createTransaction(baseTransaction(
                         id, form.accountId, form.date, plan.amountCents, payee?.id,
                         form.categoryId, notes, form.cleared, importedPayee = payee?.name,
-                    ), applyRules = false)
+                    ), applyRules = true)
                     id
                 }
             }

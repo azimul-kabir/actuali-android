@@ -277,6 +277,7 @@ fun AppNavigation(
                     defaultAccount = defaultAccount,
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
+                    onResolveRuleCategory = repository::ruleCategoryFor,
             )
             DetailDestination.Connection -> ConnectionScreen(
                 onBack = { detail = DetailDestination.Main },
