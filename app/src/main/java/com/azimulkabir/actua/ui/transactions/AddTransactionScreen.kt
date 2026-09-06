@@ -10,18 +10,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -29,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
@@ -36,6 +35,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,11 +47,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.model.SplitLine
 import com.azimulkabir.actua.model.Type
@@ -188,7 +192,7 @@ fun AddTransactionScreen(
                                 cleared = cleared,
                             ),
                         )?.let { category = it }
-                    }, editable = true,
+                    }, allowCustom = true,
                 )
             }
             if (transactionType == Type.TRANSFER.displayName) {
@@ -204,7 +208,7 @@ fun AddTransactionScreen(
             } else if (!isSplit) {
                 PickerTextField(
                     label = "Category", value = category, options = categoryOptions,
-                    onValueChange = { category = it }, editable = true,
+                    onValueChange = { category = it },
                 )
             }
             PickerTextField(
@@ -213,13 +217,13 @@ fun AddTransactionScreen(
                 onValueChange = {
                     account = it
                     if (transferAccount == it) transferAccount = ""
-                }, editable = true,
+                },
             )
             if (transactionType == Type.TRANSFER.displayName) {
                 PickerTextField(
                     label = "To", value = transferAccount,
                     options = accountOptions.filterNot { it == account },
-                    onValueChange = { transferAccount = it }, editable = true,
+                    onValueChange = { transferAccount = it },
                 )
             } else {
                 if (!isSplit) {
@@ -265,7 +269,6 @@ fun AddTransactionScreen(
                                             it[index] = line.copy(category = value)
                                         }
                                     },
-                                    editable = true,
                                 )
                                 Box(Modifier.fillMaxWidth()) {
                                     OutlinedTextField(
@@ -312,7 +315,7 @@ fun AddTransactionScreen(
                                             it[index] = line.copy(payee = value)
                                         }
                                     },
-                                    editable = true,
+                                    allowCustom = true,
                                 )
                                 OutlinedTextField(
                                     value = line.notes,
@@ -471,65 +474,199 @@ private fun PickerTextField(
     value: String,
     options: List<String>,
     onValueChange: (String) -> Unit,
-    editable: Boolean,
+    allowCustom: Boolean = false,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var fieldValue by remember { mutableStateOf(TextFieldValue(value)) }
-    LaunchedEffect(value) {
-        if (fieldValue.text != value) fieldValue = TextFieldValue(value, TextRange(value.length))
-    }
-    val filtered = remember(fieldValue.text, options) {
-        if (!editable || fieldValue.text.isBlank()) options.distinct()
-        else options.filter { it.contains(fieldValue.text, ignoreCase = true) }.distinct()
-    }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { shouldExpand ->
-        expanded = shouldExpand
-        if (shouldExpand && editable && fieldValue.text.isNotEmpty()) {
-            fieldValue = TextFieldValue("")
-            onValueChange("")
-        }
-    }) {
+    var showPicker by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth()) {
         OutlinedTextField(
-            value = fieldValue,
-            onValueChange = { next ->
-                if (editable) {
-                    fieldValue = next
-                    onValueChange(next.text)
-                    expanded = true
-                }
-            },
+            value = value,
+            onValueChange = {},
             label = { Text(label) },
             singleLine = true,
-            readOnly = !editable,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor(
-                    type = if (editable) {
-                        ExposedDropdownMenuAnchorType.PrimaryEditable
-                    } else {
-                        ExposedDropdownMenuAnchorType.PrimaryNotEditable
-                    },
-                    enabled = true,
-                )
-                .fillMaxWidth(),
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            filtered.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        fieldValue = TextFieldValue(option, TextRange(option.length))
-                        onValueChange(option)
-                        expanded = false
+        Box(Modifier.matchParentSize().clickable { showPicker = true })
+    }
+    if (showPicker) SearchableTransactionPicker(
+        title = label.removeSuffix(" (optional)"),
+        selected = value,
+        options = options,
+        allowCustom = allowCustom,
+        onDismiss = { showPicker = false },
+        onSelect = {
+            onValueChange(it)
+            showPicker = false
+        },
+    )
+}
+
+@Composable
+private fun SearchableTransactionPicker(
+    title: String,
+    selected: String,
+    options: List<String>,
+    allowCustom: Boolean,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val uniqueOptions = remember(options) { options.distinct() }
+    val filtered = remember(query, uniqueOptions) {
+        uniqueOptions.filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+    }
+    val transferOptions = filtered.filter { it.startsWith("Transfer: ") }
+    val regularOptions = filtered.filterNot { it.startsWith("Transfer: ") }
+    val grouped = regularOptions
+        .sortedWith(String.CASE_INSENSITIVE_ORDER)
+        .groupBy { it.firstOrNull()?.uppercaseChar()?.takeIf(Char::isLetterOrDigit)?.toString() ?: "#" }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(Modifier.fillMaxSize().imePadding()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
+                    }
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = {
+                        Text(if (allowCustom) "Find or add a ${title.lowercase()}" else "Search ${title.lowercase()}")
                     },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .focusRequester(focusRequester),
                 )
-            }
-            if (editable && value.isNotBlank() && value !in options) {
-                DropdownMenuItem(
-                    text = { Text("Use “$value”") },
-                    onClick = { expanded = false },
-                )
+                LaunchedEffect(Unit) {
+                    focusRequester.requestFocus()
+                    keyboard?.show()
+                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        start = 20.dp, end = 20.dp, top = 8.dp, bottom = 32.dp,
+                    ),
+                ) {
+                    if (selected.isNotBlank() && query.isBlank() && selected in uniqueOptions) {
+                        item { PickerSectionLabel("Selected") }
+                        item { PickerGroup(listOf(selected), selected, onSelect = onSelect) }
+                    }
+                    if (transferOptions.isNotEmpty()) {
+                        item { PickerSectionLabel("Payments and transfers") }
+                        item {
+                            PickerGroup(
+                                options = transferOptions,
+                                selected = selected,
+                                displayText = { it.removePrefix("Transfer: ") },
+                                onSelect = onSelect,
+                            )
+                        }
+                    }
+                    if (allowCustom && query.isNotBlank() && uniqueOptions.none {
+                            it.equals(query.trim(), ignoreCase = true)
+                        }
+                    ) {
+                        item { PickerSectionLabel("New ${title.lowercase()}") }
+                        item {
+                            PickerGroup(
+                                options = listOf(query.trim()),
+                                selected = "",
+                                displayText = { "Add “$it”" },
+                                onSelect = onSelect,
+                            )
+                        }
+                    }
+                    grouped.forEach { (letter, entries) ->
+                        item(key = "heading-$letter") { PickerSectionLabel(letter) }
+                        item(key = "group-$letter") {
+                            PickerGroup(entries, selected, onSelect = onSelect)
+                        }
+                    }
+                    if (filtered.isEmpty() && !(allowCustom && query.isNotBlank())) {
+                        item {
+                            Text(
+                                "No matches",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 24.dp),
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun PickerSectionLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 20.dp, bottom = 6.dp, start = 4.dp),
+    )
+}
+
+@Composable
+private fun PickerGroup(
+    options: List<String>,
+    selected: String,
+    displayText: (String) -> String = { it },
+    onSelect: (String) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column {
+            options.forEachIndexed { index, option ->
+                PickerRow(displayText(option), option == selected) { onSelect(option) }
+                if (index < options.lastIndex) {
+                    HorizontalDivider(modifier = Modifier.padding(start = 52.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PickerRow(text: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+        )
+        if (selected) Icon(
+            Icons.Outlined.Check,
+            contentDescription = "Selected",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(end = 8.dp),
+        )
     }
 }
