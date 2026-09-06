@@ -6,8 +6,8 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ### Changed
 
-- Replaced the approximate Actua launcher vector with the exact approved ribbon-and-envelope mark, scaled with comfortable adaptive-mask padding
-- Preserved the solid violet adaptive background and Android 13+ Material You themed-icon support
+- Adopted the original Actua Fold A as a fully scalable SVG and native Android vector icon
+- Preserved the solid violet adaptive background with matching Android 13+ Material You vector geometry
 - Aligned account working-balance values by moving the disclosure control beside the label
 - Remembered collapsed account summaries and Budget category groups across navigation and app restarts
 - Replaced always-open account and category note forms with compact tappable note rows and focused editors
