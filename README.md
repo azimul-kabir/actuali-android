@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="artwork/actua-icon.svg" alt="Actua app icon" width="128" height="128">
+
 # Actua
 
 **A native Android client for [Actual Budget](https://actualbudget.org/), built with Kotlin and Jetpack Compose.**
