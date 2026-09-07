@@ -7,10 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
 import com.azimulkabir.actua.model.Transaction
+import com.azimulkabir.actua.model.Type
 import com.azimulkabir.actua.model.Account
 import com.azimulkabir.actua.model.CreditCardStatus
 import com.azimulkabir.actua.ui.components.formatMoneyCents
@@ -168,13 +169,13 @@ fun TransactionsScreen(
                     }
                     items(transactions, key = { it.id }) { transaction ->
                         TransactionRow(transaction, hideDecimalPlaces, showDate = false, onClick = { onEdit(transaction) },
-                            onLongClick = { selected = transaction })
+                            showAccount = accountName == null, onLongClick = { selected = transaction })
                     }
                 }
             } else {
                 items(visible, key = { it.id }) { transaction ->
                     TransactionRow(transaction, hideDecimalPlaces, showDate = true, onClick = { onEdit(transaction) },
-                        onLongClick = { selected = transaction })
+                        showAccount = accountName == null, onLongClick = { selected = transaction })
                 }
             }
         }
@@ -335,26 +336,99 @@ private fun ToggleItem(label: String, checked: Boolean, onChange: (Boolean) -> U
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TransactionRow(transaction: Transaction, hideDecimalPlaces: Boolean,
-    showDate: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
-        .padding(horizontal = 20.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
-        Surface(modifier = Modifier.width(10.dp), shape = CircleShape,
-            color = if (transaction.cleared) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outlineVariant) { Spacer(Modifier.width(10.dp)) }
-        Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(transaction.payee, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
-            Text(listOf(transaction.category, transaction.account).filter(String::isNotBlank).joinToString(" • "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Column(horizontalAlignment = Alignment.End) {
+    showDate: Boolean, showAccount: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val presentation = transactionRowPresentation(transaction, showAccount)
+    Column(modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick)
+        .padding(horizontal = 20.dp, vertical = 12.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(presentation.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
             Amount(transaction.amountCents, FontWeight.SemiBold, hideDecimalPlaces)
-            if (showDate) Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End)
+            ClearedIndicator(transaction.cleared)
+        }
+        presentation.transferContext?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
+                overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(6.dp))
+        } ?: Spacer(Modifier.height(7.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            CategoryChip(presentation.categoryLabel, transaction.type == Type.TRANSFER)
+            Spacer(Modifier.weight(1f))
+            presentation.accountLabel?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
+                    modifier = Modifier.padding(start = 12.dp))
+            }
+        }
+        if (transaction.notes.isNotBlank() || showDate) {
+            Row(Modifier.fillMaxWidth().padding(top = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (transaction.notes.isNotBlank()) {
+                    Text(transaction.notes, style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                } else Spacer(Modifier.weight(1f))
+                if (showDate) Text(formatTransactionDate(transaction.date), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.End,
+                    modifier = Modifier.padding(start = 12.dp))
+            }
         }
     }
-    HorizontalDivider(modifier = Modifier.padding(start = 42.dp),
+    HorizontalDivider(
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+}
+
+internal data class TransactionRowPresentation(
+    val title: String,
+    val categoryLabel: String,
+    val accountLabel: String?,
+    val transferContext: String?,
+)
+
+internal fun transactionRowPresentation(transaction: Transaction, showAccount: Boolean): TransactionRowPresentation {
+    if (transaction.type != Type.TRANSFER) {
+        return TransactionRowPresentation(
+            title = transaction.payee.ifBlank { "Unknown payee" },
+            categoryLabel = transaction.category.ifBlank { "Uncategorized" },
+            accountLabel = transaction.account.takeIf { showAccount && it.isNotBlank() },
+            transferContext = null,
+        )
+    }
+    val otherAccount = transaction.transferAccount?.ifBlank { null }
+        ?: transaction.payee.ifBlank { "Unknown account" }
+    val outgoing = transaction.amountCents < 0
+    return TransactionRowPresentation(
+        title = if (outgoing) "Transfer to $otherAccount" else "Transfer from $otherAccount",
+        categoryLabel = "Transfer",
+        accountLabel = null,
+        transferContext = if (!showAccount) null else if (outgoing) "From ${transaction.account}" else "To ${transaction.account}",
+    )
+}
+
+@Composable
+private fun CategoryChip(label: String, transfer: Boolean) {
+    Surface(
+        color = if (transfer) MaterialTheme.colorScheme.secondaryContainer
+            else MaterialTheme.colorScheme.surfaceContainer,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium,
+            color = if (transfer) MaterialTheme.colorScheme.onSecondaryContainer
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+    }
+}
+
+@Composable
+private fun ClearedIndicator(cleared: Boolean) {
+    Surface(
+        modifier = Modifier.padding(start = 7.dp).size(18.dp),
+        shape = CircleShape,
+        color = if (cleared) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+    ) {
+        Text("C", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
+            color = if (cleared) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center)
+    }
 }
 
 internal fun formatTransactionDate(value: String): String {
