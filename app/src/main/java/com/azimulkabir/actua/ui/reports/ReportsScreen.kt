@@ -13,9 +13,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,14 +31,21 @@ import com.azimulkabir.actua.ui.components.formatMoneyCents
 import kotlin.math.max
 
 @Composable
-fun ReportsScreen(snapshot: ReportSnapshot, hideDecimalPlaces: Boolean, modifier: Modifier = Modifier) {
+fun ReportsScreen(snapshot: ReportSnapshot, hideDecimalPlaces: Boolean, modifier: Modifier = Modifier,
+    onSearch: () -> Unit = {}) {
     val current = snapshot.current
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item { Text("Reports", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
+        item {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Reports", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f))
+                IconButton(onClick = onSearch) { Icon(Icons.Outlined.Search, contentDescription = "Search Actua") }
+            }
+        }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 SummaryCard("Income", current?.incomeCents ?: 0, hideDecimalPlaces, Modifier.weight(1f))

@@ -52,6 +52,7 @@ import com.azimulkabir.actua.ui.settings.RulesScreen
 import com.azimulkabir.actua.ui.transactions.AddTransactionScreen
 import com.azimulkabir.actua.ui.transactions.TransactionsScreen
 import com.azimulkabir.actua.ui.reports.ReportsScreen
+import com.azimulkabir.actua.ui.search.GlobalSearchScreen
 import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.data.ActuaRepository
 import com.azimulkabir.actua.data.sync.ActualSyncRunner
@@ -72,7 +73,7 @@ private enum class MainDestination(
     More("More", Icons.Outlined.MoreHoriz),
 }
 
-private enum class DetailDestination { Main, Transactions, EditTransaction, Connection, CreditCards, Rules }
+private enum class DetailDestination { Main, Transactions, EditTransaction, Search, Connection, CreditCards, Rules }
 
 @Composable
 fun AppNavigation(
@@ -108,6 +109,7 @@ fun AppNavigation(
     var transactionAccount by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionCategory by rememberSaveable { mutableStateOf<String?>(null) }
     var transactionMonth by rememberSaveable { mutableStateOf<String?>(null) }
+    var transactionSearch by rememberSaveable { mutableStateOf("") }
     var editingTransaction by remember { mutableStateOf<Transaction?>(null) }
     var editorReturnsToTransactions by rememberSaveable { mutableStateOf(false) }
     var hideDecimalPlaces by remember { mutableStateOf(displayPreferences.hideDecimalPlaces) }
@@ -255,6 +257,7 @@ fun AppNavigation(
                         mutate("Saving account note") { repository.setAccountNote(account.id, note) }
                     }
                 },
+                initialSearch = transactionSearch,
             )
             DetailDestination.EditTransaction -> AddTransactionScreen(
                 editing = editingTransaction,
@@ -280,6 +283,7 @@ fun AppNavigation(
                             transactionAccount = null
                             transactionCategory = null
                             transactionMonth = null
+                            transactionSearch = ""
                             detail = DetailDestination.Transactions
                         }
                     }
@@ -301,6 +305,32 @@ fun AppNavigation(
                     hideDecimalPlaces = hideDecimalPlaces,
                     conventionalAmountEntry = conventionalAmountEntry,
                     onResolveRuleCategory = repository::ruleCategoryFor,
+            )
+            DetailDestination.Search -> GlobalSearchScreen(
+                transactions = transactions,
+                accounts = accounts,
+                payees = payeeNames,
+                categories = categoryNames,
+                hideDecimalPlaces = hideDecimalPlaces,
+                onBack = { detail = DetailDestination.Main },
+                onTransactionClick = {
+                    editingTransaction = it
+                    editorReturnsToTransactions = false
+                    detail = DetailDestination.EditTransaction
+                },
+                onAccountClick = {
+                    transactionAccount = it; transactionCategory = null; transactionMonth = null; transactionSearch = ""
+                    destination = MainDestination.Accounts; detail = DetailDestination.Transactions
+                },
+                onCategoryClick = {
+                    transactionAccount = null; transactionCategory = it; transactionMonth = null; transactionSearch = ""
+                    destination = MainDestination.Budget; detail = DetailDestination.Transactions
+                },
+                onPayeeClick = {
+                    transactionAccount = null; transactionCategory = null; transactionMonth = null; transactionSearch = it
+                    destination = MainDestination.Accounts; detail = DetailDestination.Transactions
+                },
+                modifier = contentModifier,
             )
             DetailDestination.Connection -> ConnectionScreen(
                 onBack = { detail = DetailDestination.Main },
@@ -402,6 +432,7 @@ fun AppNavigation(
                         transactionAccount = null
                         transactionCategory = category
                         transactionMonth = if (thisMonth) budgetMonth else null
+                        transactionSearch = ""
                         detail = DetailDestination.Transactions
                     },
                     onTransferBudget = { fromGroup, fromCategory, toGroup, toCategory, amount ->
@@ -424,6 +455,7 @@ fun AppNavigation(
                     onSetCategoryCarryover = { categoryId, enabled ->
                         mutate("Updating rollover") { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
                     },
+                    onSearch = { detail = DetailDestination.Search },
                 )
                 MainDestination.Accounts -> AccountsScreen(
                     modifier = contentModifier,
@@ -435,11 +467,13 @@ fun AppNavigation(
                     onAccountClick = {
                         transactionAccount = it
                         transactionCategory = null; transactionMonth = null
+                        transactionSearch = ""
                         detail = DetailDestination.Transactions
                     },
                     onAllAccountsClick = {
                         transactionAccount = null
                         transactionCategory = null; transactionMonth = null
+                        transactionSearch = ""
                         detail = DetailDestination.Transactions
                     },
                     onCloseAccount = { account ->
@@ -453,9 +487,11 @@ fun AppNavigation(
                     onCreateAccount = { name, offBudget, balance ->
                         mutate("Creating account") { repository.createAccount(name, offBudget, balance) }
                     },
+                    onSearch = { detail = DetailDestination.Search },
                 )
                 MainDestination.Add -> Unit
-                MainDestination.Reports -> ReportsScreen(reportSnapshot, hideDecimalPlaces, contentModifier)
+                MainDestination.Reports -> ReportsScreen(reportSnapshot, hideDecimalPlaces, contentModifier,
+                    onSearch = { detail = DetailDestination.Search })
                 MainDestination.More -> SettingsScreen(
                     modifier = contentModifier,
                     onConnectionClick = { detail = DetailDestination.Connection },

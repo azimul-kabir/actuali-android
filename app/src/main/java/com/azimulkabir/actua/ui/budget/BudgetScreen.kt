@@ -32,6 +32,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -134,6 +135,7 @@ fun BudgetScreen(
     onSetBudgetAmount: (String, String, Long) -> Unit = { _, _, _ -> },
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
+    onSearch: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val budgetUiPreferences = remember(context) {
@@ -189,6 +191,7 @@ fun BudgetScreen(
                 saveCollapsedGroups(groups.mapTo(mutableSetOf()) { it.name })
                 optionsExpanded = false
             },
+            onSearch = onSearch,
         )
         AnimatedVisibility(visible = showOverview) {
             if (budgetView == "Plan") PlanBudgetOverview(
@@ -422,6 +425,7 @@ private fun BudgetToolbar(
     onShowHiddenChange: (Boolean) -> Unit,
     onExpandAll: () -> Unit,
     onCollapseAll: () -> Unit,
+    onSearch: () -> Unit,
 ) {
     var monthPickerOpen by remember { mutableStateOf(false) }
     Row(
@@ -451,6 +455,9 @@ private fun BudgetToolbar(
                 tonalElevation = 2.dp,
             ) {
                 Row {
+                    IconButton(onClick = onSearch) {
+                        Icon(Icons.Outlined.Search, contentDescription = "Search Actua")
+                    }
                     IconButton(onClick = onAdd) {
                         Icon(Icons.Outlined.Add, contentDescription = "Add category")
                     }

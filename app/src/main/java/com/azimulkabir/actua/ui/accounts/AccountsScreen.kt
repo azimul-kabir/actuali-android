@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -89,6 +90,7 @@ fun AccountsScreen(
     onCloseAccount: (Account) -> Unit = {},
     onRenameAccount: (Account, String) -> Unit = { _, _ -> },
     onCreateAccount: (String, Boolean, String) -> Unit = { _, _, _ -> },
+    onSearch: () -> Unit = {},
 ) {
     var collapsedSections by remember { mutableStateOf(setOf("Closed accounts")) }
     var selectedAccount by remember { mutableStateOf<Account?>(null) }
@@ -107,6 +109,7 @@ fun AccountsScreen(
         ) {
             Text("Accounts", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f))
+            IconButton(onClick = onSearch) { Icon(Icons.Outlined.Search, contentDescription = "Search Actua") }
             Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainer,
                 tonalElevation = 2.dp) {
                 IconButton(onClick = { showAddSheet = true }) {

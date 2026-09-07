@@ -93,8 +93,9 @@ fun TransactionsScreen(
     account: Account? = null,
     creditCard: CreditCardStatus? = null,
     onSaveAccountNote: (String) -> Unit = {},
+    initialSearch: String = "",
 ) {
-    var search by remember { mutableStateOf("") }
+    var search by remember(initialSearch) { mutableStateOf(initialSearch) }
     var showSearch by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var hideCleared by remember { mutableStateOf(false) }
