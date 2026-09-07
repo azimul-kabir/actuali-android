@@ -4,6 +4,26 @@ All notable user-facing changes to Actua are recorded here. This project uses [S
 
 ## Unreleased
 
+## [0.1.0-alpha.5] - 2026-09-07
+
+Fifth public testing release.
+
+### Added
+
+- Global Material You search across transactions, accounts, payees, categories, notes, and transfer accounts
+- Unified category budget sheet with Budget entry, Auto-Assign, Move Money, Details, recent transactions, notes, rollover, rename, hide, and deletion actions
+- Screenshot-inspired Material You calculators for transaction amounts and category budgeting
+
+### Changed
+
+- Redesigned transaction rows with category chips, notes, cleared status, per-row dates when date grouping is disabled, and account context in All Accounts
+- Transfers in All Accounts now identify both source and destination accounts, while individual account views omit the current account
+- Saving a new transaction now opens All Accounts transactions
+- Renamed Assigned to Budgeted and Available to Balance throughout the Budget views
+- Made the complete category row open Budget entry in both Table and Plan views; amount fields no longer have separate tap actions
+- Unified the Plan and Table overview layouts and added aligned pills to To Budget and Balance amounts
+- Plan group Budgeted totals are shown only while the group is collapsed
+
 ## [0.1.0-alpha.4] - 2026-09-07
 
 Fourth public testing release.
@@ -121,3 +141,4 @@ Initial public testing release.
 [0.1.0-alpha.2]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.2
 [0.1.0-alpha.3]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.3
 [0.1.0-alpha.4]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.4
+[0.1.0-alpha.5]: https://github.com/azimul-kabir/actuali-android/releases/tag/v0.1.0-alpha.5

@@ -40,6 +40,8 @@ by either the Actuali project or the Actual Budget team.
 - Category notes, rollover overspending, and history-based quick assign
 - Credit-card limits, billing-cycle metadata, due dates, and cycle spending stored through Actual preferences
 - Reports, display currency, decimal, appearance, start-page, and privacy preferences
+- Global search across transactions, accounts, payees, categories, notes, and transfers
+- Unified Material You category budgeting with auto-assign, money movement, details, and recent activity
 - Material You motion for tab changes, detail navigation, searches, and expandable sections
 
 See [BACKEND_PARITY.md](BACKEND_PARITY.md) for the implementation boundary and detailed port status.

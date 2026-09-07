@@ -200,9 +200,7 @@ fun BudgetScreen(
             onSearch = onSearch,
         )
         AnimatedVisibility(visible = showOverview) {
-            if (budgetView == "Plan") PlanBudgetOverview(
-                overview, hideDecimalPlaces, onClick = { assignFromBudgetOpen = true },
-            ) else BudgetOverviewRow(
+            BudgetOverviewRow(
                 overview,
                 showSpent = showSpent,
                 hideDecimalPlaces = hideDecimalPlaces,
@@ -613,34 +611,6 @@ private fun ToggleMenuItem(label: String, checked: Boolean, onChange: (Boolean) 
     )
 }
 
-@Composable
-private fun PlanBudgetOverview(
-    overview: BudgetOverview,
-    hideDecimalPlaces: Boolean,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        color = if ((overview.toBudgetCents ?: 0L) >= 0) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.errorContainer,
-        shape = RoundedCornerShape(28.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                overview.toBudgetCents?.let { formatMoneyCents(it, hideDecimalPlaces) } ?: "—",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            Text("To Budget", style = MaterialTheme.typography.titleSmall)
-        }
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PlanBudgetGroupHeader(
@@ -855,11 +825,12 @@ private fun BudgetOverviewRow(
                 Modifier.weight(1.35f).clickable(role = Role.Button, onClick = onToBudgetClick),
                 Alignment.Start,
                 positive = overview.toBudgetCents?.let { it > 0 } == true,
+                pill = true,
             )
             OverviewCell("Budgeted", formatMoneyCents(overview.budgetedCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
             if (showSpent) OverviewCell("Spent", formatMoneyCents(overview.spentCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End)
             OverviewCell("Balance", formatMoneyCents(overview.availableCents, hideDecimalPlaces), Modifier.weight(1f), Alignment.End,
-                positive = overview.availableCents >= 0)
+                positive = overview.availableCents >= 0, pill = true)
         }
     }
 }
@@ -871,13 +842,27 @@ private fun OverviewCell(
     modifier: Modifier,
     alignment: Alignment.Horizontal,
     positive: Boolean = false,
+    pill: Boolean = false,
 ) {
     Column(modifier = modifier, horizontalAlignment = alignment) {
         Text(label, style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.68f), maxLines = 1)
-        Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-            color = if (positive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer,
-            maxLines = 1)
+        if (pill) {
+            Surface(
+                color = if (positive) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHighest,
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                    color = if (positive) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+            }
+        } else {
+            Text(amount, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                color = if (positive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSecondaryContainer,
+                maxLines = 1)
+        }
     }
 }
 
