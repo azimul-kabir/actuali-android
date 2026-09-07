@@ -18,7 +18,8 @@ branch ruleset if it should be required for merging.
 
 Release metadata changes on `rebrand/actua` run the Android Release workflow. It
 builds and validates the debug-signed testing APK, creates the version tag and
-GitHub prerelease, and attaches the versioned APK. Update `versionCode`,
+GitHub prerelease, copies that version's `CHANGELOG.md` section into the release
+description, and attaches the versioned APK. Update `versionCode`,
 `versionName`, and `CHANGELOG.md` together for each release.
 
 ## Recommended: Codex GitHub review with ChatGPT Plus
