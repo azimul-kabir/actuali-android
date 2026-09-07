@@ -272,9 +272,16 @@ fun AppNavigation(
                             },
                         )) {
                         dataVersion += 1
-                        detail = if (editorReturnsToTransactions) DetailDestination.Transactions else DetailDestination.Main
                         editingTransaction = null
-                        if (!editorReturnsToTransactions) destination = MainDestination.Accounts
+                        if (editorReturnsToTransactions) {
+                            detail = DetailDestination.Transactions
+                        } else {
+                            destination = MainDestination.Accounts
+                            transactionAccount = null
+                            transactionCategory = null
+                            transactionMonth = null
+                            detail = DetailDestination.Transactions
+                        }
                     }
                 },
                 onDelete = { transaction ->
