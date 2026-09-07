@@ -59,6 +59,8 @@ Android backlog items and will never be ported.
   payee deduplication, and create-form projection
 - Account, category, and category-group rename/close/hide long-press actions
   wired through CRDT mutations and immediate UI refresh
+- Category deletion through Actual-compatible tombstone mutations, with existing
+  transactions safely falling back to uncategorized
 - Account/category/group creation with Actual transfer-payee, opening-balance,
   mapping, duplicate-name, and sort-order behavior
 - Category context actions for budget editing, month/all transaction lists,
@@ -93,7 +95,7 @@ Android backlog items and will never be ported.
 
 ## Remaining version 1 work
 
-- Remaining entity creation/deletion/merge/reorder mutations and Android action wiring
+- Remaining entity deletion/merge/reorder mutations and Android action wiring
 - Budget templates, goals, and broader automation UI
 - Local-backup export/share and import picker
 

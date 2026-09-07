@@ -444,6 +444,14 @@ class ActuaRepository(context: Context) {
         return true
     }
 
+    fun deleteCategory(groupName: String, categoryName: String): Boolean {
+        val db = actualDatabase ?: return false
+        val group = db.fetchCategoryGroups().firstOrNull { it.name == groupName } ?: return false
+        val category = group.categories.firstOrNull { it.name == categoryName } ?: return false
+        actualEntities!!.deleteCategory(category.id)
+        return true
+    }
+
     fun setCategoryGroupHidden(groupName: String, hidden: Boolean): Boolean {
         val group = actualDatabase?.fetchCategoryGroups()?.firstOrNull { it.name == groupName } ?: return false
         actualEntities!!.setCategoryGroupHidden(group.id, hidden)

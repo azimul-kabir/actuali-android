@@ -40,6 +40,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -69,8 +70,10 @@ import androidx.compose.ui.unit.dp
 import com.azimulkabir.actua.model.BudgetCategory
 import com.azimulkabir.actua.model.BudgetGroup
 import com.azimulkabir.actua.model.BudgetOverview
+import com.azimulkabir.actua.model.Transaction
 import com.azimulkabir.actua.ui.components.CalculatorAmountState
 import com.azimulkabir.actua.ui.components.formatMoneyCents
+import com.azimulkabir.actua.ui.components.formatStoredDate
 import com.azimulkabir.actua.ui.components.RenameDialog
 import com.azimulkabir.actua.ui.components.NewCategoryDialog
 import java.text.NumberFormat
@@ -136,6 +139,8 @@ fun BudgetScreen(
     onSetCategoryNote: (String, String) -> Unit = { _, _ -> },
     onSetCategoryCarryover: (String, Boolean) -> Unit = { _, _ -> },
     onSearch: () -> Unit = {},
+    transactions: List<Transaction> = emptyList(),
+    onDeleteCategory: (String, String) -> Boolean = { _, _ -> false },
 ) {
     val context = LocalContext.current
     val budgetUiPreferences = remember(context) {
@@ -160,6 +165,7 @@ fun BudgetScreen(
     var movingBudget by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var fundingCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var categoryDetails by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
+    var autoAssignCategory by remember { mutableStateOf<Pair<BudgetGroup, BudgetCategory>?>(null) }
     var assignFromBudgetOpen by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -269,10 +275,8 @@ fun BudgetScreen(
                                 category = category,
                                 showTopDivider = index > 0,
                                 hideDecimalPlaces = hideDecimalPlaces,
-                                onClick = { categoryDetails = group to category },
+                                onClick = { editingBudget = group to category },
                                 onLongClick = { selectedCategory = category },
-                                onAssignedClick = { fundingCategory = group to category },
-                                onSpentClick = { onShowCategoryTransactions(category.name, true) },
                             )
                         } else {
                             CategoryRow(
@@ -281,11 +285,7 @@ fun BudgetScreen(
                                 showProgressBar = showProgressBars,
                                 showTopDivider = index > 0,
                                 onLongClick = { selectedCategory = category },
-                                onEditBudget = { editingBudget = group to category },
-                                onOpenDetails = { categoryDetails = group to category },
-                                onShowSpentTransactions = {
-                                    onShowCategoryTransactions(category.name, true)
-                                },
+                                onOpen = { editingBudget = group to category },
                                 hideDecimalPlaces = hideDecimalPlaces,
                             )
                         }
@@ -333,6 +333,9 @@ fun BudgetScreen(
         EditBudgetAmountSheet(
             category = category,
             onDismiss = { editingBudget = null },
+            onAutoAssign = { editingBudget = null; autoAssignCategory = group to category },
+            onMoveMoney = { editingBudget = null; movingBudget = group to category },
+            onDetails = { editingBudget = null; categoryDetails = group to category },
             onSave = { amount ->
                 onSetBudgetAmount(group.name, category.name, amount)
                 editingBudget = null
@@ -397,6 +400,33 @@ fun BudgetScreen(
             onAssign = { amount ->
                 onSetBudgetAmount(group.name, category.name, amount)
                 categoryDetails = null
+            },
+            transactions = transactions.filter { it.category == category.name }
+                .sortedByDescending { it.date }.take(3),
+            onRename = { categoryDetails = null; renamingCategory = group to category },
+            onTransactionsThisMonth = {
+                categoryDetails = null; onShowCategoryTransactions(category.name, true)
+            },
+            onAllTransactions = {
+                categoryDetails = null; onShowCategoryTransactions(category.name, false)
+            },
+            hidden = category.hidden,
+            onSetHidden = { hidden ->
+                if (onSetCategoryHidden(group.name, category.name, hidden)) categoryDetails = null
+            },
+            onDelete = {
+                if (onDeleteCategory(group.name, category.name)) categoryDetails = null
+            },
+        )
+    }
+    autoAssignCategory?.let { (group, category) ->
+        CategoryAutoAssignSheet(
+            category = category,
+            hideDecimalPlaces = hideDecimalPlaces,
+            onDismiss = { autoAssignCategory = null },
+            onAssign = { amount ->
+                onSetBudgetAmount(group.name, category.name, amount)
+                autoAssignCategory = null
             },
         )
     }
@@ -606,7 +636,7 @@ private fun PlanBudgetOverview(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f),
             )
-            Text("Ready to assign", style = MaterialTheme.typography.titleSmall)
+            Text("To Budget", style = MaterialTheme.typography.titleSmall)
         }
     }
 }
@@ -647,8 +677,8 @@ private fun PlanBudgetGroupHeader(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f).padding(start = 4.dp),
             )
-            AmountColumn("Assigned", assigned, Modifier.width(92.dp), hideDecimalPlaces)
-            AmountColumn("Available", available, Modifier.width(92.dp), hideDecimalPlaces, balance = true)
+            if (collapsed) AmountColumn("Budgeted", assigned, Modifier.width(92.dp), hideDecimalPlaces)
+            AmountColumn("Balance", available, Modifier.width(92.dp), hideDecimalPlaces, balance = true)
         }
     }
 }
@@ -661,8 +691,6 @@ private fun PlanBudgetCategoryRow(
     hideDecimalPlaces: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    onAssignedClick: () -> Unit,
-    onSpentClick: () -> Unit,
 ) {
     if (showTopDivider) HorizontalDivider(
         modifier = Modifier.padding(start = 16.dp),
@@ -709,13 +737,10 @@ private fun PlanBudgetCategoryRow(
         )
         Row(modifier = Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Assigned ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
+                "Budgeted ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(
-                    role = Role.Button,
-                    onClick = onAssignedClick,
-                ).padding(vertical = 4.dp),
+                modifier = Modifier.padding(vertical = 4.dp),
             )
             Text(
                 " · ",
@@ -726,10 +751,7 @@ private fun PlanBudgetCategoryRow(
                 "Spent ${formatMoneyCents(category.spentCents, hideDecimalPlaces)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(
-                    role = Role.Button,
-                    onClick = onSpentClick,
-                ).padding(vertical = 4.dp),
+                modifier = Modifier.padding(vertical = 4.dp),
             )
         }
     }
@@ -938,9 +960,7 @@ private fun CategoryRow(
     showProgressBar: Boolean,
     showTopDivider: Boolean,
     onLongClick: () -> Unit,
-    onEditBudget: () -> Unit,
-    onOpenDetails: () -> Unit,
-    onShowSpentTransactions: () -> Unit,
+    onOpen: () -> Unit,
     hideDecimalPlaces: Boolean,
 ) {
     if (showTopDivider) {
@@ -948,7 +968,7 @@ private fun CategoryRow(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
     }
     Column(
-        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onOpenDetails, onLongClick = onLongClick)
+        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = onLongClick)
             .padding(horizontal = 16.dp, vertical = 11.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -956,15 +976,10 @@ private fun CategoryRow(
                 style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1.35f),
                 color = if (category.hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            CategoryAmount(category.assignedCents, Modifier.weight(1f).combinedClickable(
-                role = Role.Button, onClick = onEditBudget, onLongClick = onLongClick,
-            ), hideDecimalPlaces)
+            CategoryAmount(category.assignedCents, Modifier.weight(1f), hideDecimalPlaces)
             if (showSpent) CategoryAmount(
                 -category.spentCents,
-                Modifier.weight(1f).clickable(
-                    role = Role.Button,
-                    onClick = onShowSpentTransactions,
-                ),
+                Modifier.weight(1f),
                 hideDecimalPlaces,
                 muted = category.spentCents == 0L,
             )
@@ -992,6 +1007,9 @@ private fun CategoryRow(
 private fun EditBudgetAmountSheet(
     category: BudgetCategory,
     onDismiss: () -> Unit,
+    onAutoAssign: () -> Unit,
+    onMoveMoney: () -> Unit,
+    onDetails: () -> Unit,
     onSave: (Long) -> Unit,
 ) {
     val calculator = remember(category) {
@@ -1002,48 +1020,67 @@ private fun EditBudgetAmountSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
             Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                BudgetEntryAction("⚡", "Auto-Assign", Modifier.weight(1f), onAutoAssign)
+                BudgetEntryAction("→", "Move Money", Modifier.weight(1f), onMoveMoney)
+                BudgetEntryAction("•••", "Details", Modifier.weight(1f), onDetails)
+            }
             Text("Budgeted amount", style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             Text(calculator.display, style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp))
-            val keys = listOf(
-                listOf("7", "8", "9", "÷"), listOf("4", "5", "6", "×"),
-                listOf("1", "2", "3", "−"), listOf("±", "0", "⌫", "+"),
-            )
-            keys.forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { key ->
-                        Button(
-                            onClick = {
-                                refresh {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.weight(3f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf(listOf("7", "8", "9"), listOf("4", "5", "6"), listOf("1", "2", "3"),
+                        listOf("±", "0", "⌫")).forEach { row ->
+                        Row(Modifier.fillMaxWidth()) {
+                            row.forEach { key ->
+                                TextButton(onClick = { refresh {
                                     when (key) {
                                         "±" -> calculator.toggleSign()
                                         "⌫" -> calculator.backspace()
-                                        "+" -> calculator.operator(CalculatorAmountState.Operator.ADD)
-                                        "−" -> calculator.operator(CalculatorAmountState.Operator.SUBTRACT)
-                                        "×" -> calculator.operator(CalculatorAmountState.Operator.MULTIPLY)
-                                        "÷" -> calculator.operator(CalculatorAmountState.Operator.DIVIDE)
                                         else -> calculator.digit(key.toInt())
                                     }
+                                } }, modifier = Modifier.weight(1f).height(56.dp)) {
+                                    Text(key, style = MaterialTheme.typography.headlineMedium)
                                 }
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) { Text(key) }
+                            }
+                        }
                     }
                 }
-                Spacer(Modifier.height(8.dp))
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                Button(
-                    onClick = { onSave(calculator.finish()) },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Save") }
+                Column(Modifier.weight(1.35f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("−", "+", "=").forEach { key ->
+                        FilledTonalButton(onClick = { refresh {
+                            when (key) {
+                                "−" -> calculator.operator(CalculatorAmountState.Operator.SUBTRACT)
+                                "+" -> calculator.operator(CalculatorAmountState.Operator.ADD)
+                                else -> calculator.finish()
+                            }
+                        } }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(20.dp)) {
+                            Text(key, style = MaterialTheme.typography.headlineSmall)
+                        }
+                    }
+                    Button(onClick = { onSave(calculator.finish()) }, modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(20.dp)) { Text("Done", fontWeight = FontWeight.Bold) }
+                }
             }
             Spacer(Modifier.height(16.dp))
         }
     }
     @Suppress("UNUSED_EXPRESSION") revision
+}
+
+@Composable
+private fun BudgetEntryAction(symbol: String, label: String, modifier: Modifier, onClick: () -> Unit) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(onClick = onClick, color = MaterialTheme.colorScheme.surfaceContainer,
+            shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
+            Text(symbol, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center,
+                modifier = Modifier.padding(vertical = 11.dp))
+        }
+        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1,
+            modifier = Modifier.padding(top = 5.dp))
+    }
 }
 
 @Composable
@@ -1097,13 +1134,13 @@ private fun AssignBudgetSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
             Text(
-                if (covering) "Cover To Budget" else "Assign to category",
+                if (covering) "Cover To Budget" else "Budget category",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
             Text(
                 if (covering) "Choose a category to move money from"
-                else "Choose a category to fund from Ready to Assign",
+                else "Choose a category to fund from To Budget",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -1161,7 +1198,7 @@ private fun AssignBudgetSheet(
                     },
                     enabled = selected != null,
                     modifier = Modifier.weight(1f),
-                ) { Text(if (covering) "Cover" else "Assign") }
+                ) { Text(if (covering) "Cover" else "Budget") }
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -1239,25 +1276,33 @@ private fun CategoryDetailsSheet(
     onSaveNote: (String) -> Unit,
     onSetCarryover: (Boolean) -> Unit,
     onAssign: (Long) -> Unit,
+    transactions: List<Transaction>,
+    onRename: () -> Unit,
+    onTransactionsThisMonth: () -> Unit,
+    onAllTransactions: () -> Unit,
+    hidden: Boolean,
+    onSetHidden: (Boolean) -> Unit,
+    onDelete: () -> Unit,
 ) {
     var note by remember(category) { mutableStateOf(category.note) }
     var noteEditorOpen by remember(category) { mutableStateOf(false) }
     var rollover by remember(category) { mutableStateOf(category.carryoverEnabled) }
+    var deleteConfirmOpen by remember(category) { mutableStateOf(false) }
     val suggestions = remember(category) {
         buildList {
             category.history.firstOrNull()?.let { last ->
                 val spent = kotlin.math.abs(minOf(last.spentCents, 0L))
                 if (spent > 0) add("Spent last month" to spent)
-                if (last.assignedCents != 0L) add("Assigned last month" to last.assignedCents)
+                if (last.assignedCents != 0L) add("Budgeted last month" to last.assignedCents)
             }
             val spending = category.history.map { kotlin.math.abs(minOf(it.spentCents, 0L)) }
             if (spending.size >= 2) {
                 val average = (spending.sum().toDouble() / spending.size).toLong()
                 if (average > 0) add("Average spent (${spending.size} months)" to average)
             }
-            if (category.balanceCents != 0L) add("Reset available to zero" to
+            if (category.balanceCents != 0L) add("Reset balance to zero" to
                 (category.assignedCents - category.balanceCents))
-            if (category.assignedCents != 0L) add("Set assigned to zero" to 0L)
+            if (category.assignedCents != 0L) add("Set budgeted to zero" to 0L)
         }.distinctBy { it.first }
     }
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -1266,6 +1311,11 @@ private fun CategoryDetailsSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(category.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(formatMonth(month), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DetailSummary("Budgeted", category.assignedCents, hideDecimalPlaces, Modifier.weight(1f))
+                DetailSummary("Spent", -category.spentCents, hideDecimalPlaces, Modifier.weight(1f))
+                DetailSummary("Balance", category.balanceCents, hideDecimalPlaces, Modifier.weight(1f))
+            }
             Text("Note", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             Surface(
                 onClick = { noteEditorOpen = true },
@@ -1290,8 +1340,8 @@ private fun CategoryDetailsSheet(
                 }
                 Switch(rollover, { enabled -> rollover = enabled; onSetCarryover(enabled) })
             }
-            Text("Quick assign", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Current assigned: ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
+            Text("Auto-assign", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text("Current budgeted: ${formatMoneyCents(category.assignedCents, hideDecimalPlaces)}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (suggestions.isEmpty()) Text("No suggestions available", color = MaterialTheme.colorScheme.onSurfaceVariant)
             suggestions.forEach { (label, amount) ->
@@ -1303,6 +1353,25 @@ private fun CategoryDetailsSheet(
                     }
                 }
             }
+            Text("Recent transactions", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            if (transactions.isEmpty()) {
+                Text("No recent transactions", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else transactions.forEach { transaction ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(transaction.payee.ifBlank { "Unknown payee" }, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(formatStoredDate(transaction.date), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Text(formatMoneyCents(transaction.amountCents, hideDecimalPlaces), fontWeight = FontWeight.SemiBold)
+                }
+            }
+            HorizontalDivider()
+            SheetAction("Transactions this month", onTransactionsThisMonth)
+            SheetAction("All transactions", onAllTransactions)
+            SheetAction("Rename category", onRename)
+            SheetAction(if (hidden) "Unhide category" else "Hide category", { onSetHidden(!hidden) }, destructive = !hidden)
+            SheetAction("Delete category", { deleteConfirmOpen = true }, destructive = true)
             Spacer(Modifier.height(20.dp))
         }
     }
@@ -1332,6 +1401,71 @@ private fun CategoryDetailsSheet(
                 TextButton(onClick = { noteEditorOpen = false }) { Text("Cancel") }
             },
         )
+    }
+    if (deleteConfirmOpen) {
+        AlertDialog(
+            onDismissRequest = { deleteConfirmOpen = false },
+            title = { Text("Delete ${category.name}?") },
+            text = { Text("Existing transactions will become uncategorized. This cannot be undone.") },
+            confirmButton = { TextButton(onClick = onDelete) { Text("Delete", color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { deleteConfirmOpen = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+@Composable
+private fun DetailSummary(label: String, amount: Long, hideDecimals: Boolean, modifier: Modifier) {
+    Surface(modifier = modifier, color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(14.dp)) {
+        Column(Modifier.padding(10.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatMoneyCents(amount, hideDecimals), style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold, maxLines = 1)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoryAutoAssignSheet(
+    category: BudgetCategory,
+    hideDecimalPlaces: Boolean,
+    onDismiss: () -> Unit,
+    onAssign: (Long) -> Unit,
+) {
+    val choices = remember(category) {
+        buildList {
+            category.history.firstOrNull()?.let { last ->
+                val spent = kotlin.math.abs(minOf(last.spentCents, 0L))
+                if (spent > 0) add("Spent last month" to spent)
+                if (last.assignedCents != 0L) add("Budgeted last month" to last.assignedCents)
+            }
+            val spending = category.history.map { kotlin.math.abs(minOf(it.spentCents, 0L)) }
+            if (spending.size >= 2) {
+                val average = (spending.sum().toDouble() / spending.size).toLong()
+                if (average > 0) add("Average spent (${spending.size} months)" to average)
+            }
+            if (category.balanceCents != 0L) add("Reset balance to zero" to
+                (category.assignedCents - category.balanceCents))
+            if (category.assignedCents != 0L) add("Set budgeted to zero" to 0L)
+        }.distinctBy { it.first }
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Auto-Assign", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(category.name, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (choices.isEmpty()) Text("No suggestions available", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            choices.forEach { (label, amount) ->
+                Surface(onClick = { onAssign(amount) }, color = MaterialTheme.colorScheme.surfaceContainer,
+                    shape = RoundedCornerShape(14.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(label, modifier = Modifier.weight(1f))
+                        Text(formatMoneyCents(amount, hideDecimalPlaces), fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+        }
     }
 }
 
@@ -1384,7 +1518,7 @@ private fun FundingActionsSheet(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
             )
-            SheetAction("Edit assigned amount", onEditAssigned)
+            SheetAction("Edit budgeted amount", onEditAssigned)
             SheetAction(
                 if (category.balanceCents < 0L) "Cover overspending" else "Move money",
                 onMoveMoney,

@@ -456,6 +456,10 @@ fun AppNavigation(
                         mutate("Updating rollover") { repository.setCategoryCarryover(categoryId, enabled, budgetMonth) }
                     },
                     onSearch = { detail = DetailDestination.Search },
+                    transactions = transactions,
+                    onDeleteCategory = { group, category ->
+                        mutate("Deleting category") { repository.deleteCategory(group, category) }
+                    },
                 )
                 MainDestination.Accounts -> AccountsScreen(
                     modifier = contentModifier,

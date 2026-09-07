@@ -41,6 +41,7 @@ class ActualEntityWriter(
     fun setAccountClosed(id: String, closed: Boolean) = update("accounts", id, mapOf("closed" to flag(closed)))
     fun renameCategory(id: String, name: String) = update("categories", id, mapOf("name" to requiredName(name)))
     fun setCategoryHidden(id: String, hidden: Boolean) = update("categories", id, mapOf("hidden" to flag(hidden)))
+    fun deleteCategory(id: String) = update("categories", id, mapOf("tombstone" to 1))
     fun renameCategoryGroup(id: String, name: String) = update("category_groups", id, mapOf("name" to requiredName(name)))
     fun setCategoryGroupHidden(id: String, hidden: Boolean) = update("category_groups", id, mapOf("hidden" to flag(hidden)))
     fun renamePayee(id: String, name: String) = update("payees", id, mapOf("name" to requiredName(name)))

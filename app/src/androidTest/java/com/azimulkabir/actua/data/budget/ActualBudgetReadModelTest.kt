@@ -167,6 +167,18 @@ class ActualBudgetReadModelTest {
     }
 
     @Test
+    fun deletingCategoryUsesTombstoneMutation() = withDatabase { database ->
+        val writer = ActualEntityWriter(database, nodeId = "dddddddddddddddd")
+
+        writer.deleteCategory("grocery")
+
+        assertTrue(database.fetchCategoryGroups().flatMap { it.categories }.none { it.id == "grocery" })
+        assertTrue(database.getMessagesSince(com.azimulkabir.actua.data.sync.HlcTimestamp.ZERO.toString()).any {
+            it.dataset == "categories" && it.row == "grocery" && it.column == "tombstone"
+        })
+    }
+
+    @Test
     fun creditCardConfigUsesIosPreferenceContractAndSyncLog() = withDatabase { database ->
         val writer = ActualEntityWriter(database, nodeId = "cccccccccccccccc")
         writer.setPreference(
